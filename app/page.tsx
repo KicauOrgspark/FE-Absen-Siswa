@@ -14,11 +14,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowRight, User, Lock, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  ArrowRight,
+  User,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // Validation schemas
 const loginSchema = z.object({
-  nomorInduk: z.string().min(1, "Nomor Induk harus diisi"),
+  nisn: z.string().min(1, "Nomor Induk harus diisi"),
   password: z.string().min(1, "Password harus diisi"),
   ingatSaya: z.boolean().optional(),
 });
@@ -30,18 +38,23 @@ const tokenSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 type TokenFormData = z.infer<typeof tokenSchema>;
 
-type Screen = "login" | "error" | "success" | "token" ;
+type Screen = "login" | "error" | "success";
 
 export default function LoginPage() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("login");
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [tokenError, setTokenError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSubmittingToken, setIsSubmittingToken] = useState(false);
+
+  // Get auth functions from context
+  const { login, submitAbsen } = useAuth();
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      nomorInduk: "",
+      nisn: "",
       password: "",
       ingatSaya: false,
     },
@@ -54,42 +67,74 @@ export default function LoginPage() {
     },
   });
 
-  const onLoginSubmit = (data: LoginFormData) => {
-    // Simulate login validation
-    if (data.nomorInduk === "wrong" || data.password === "wrong") {
-      setErrorMessage("Kredensial akun salah atau belum terdaftar.");
-      setCurrentScreen("error");
-    } else {
-      // Open token modal instead of navigating to token screen
+  const onLoginSubmit = async (data: LoginFormData) => {
+    setIsLoggingIn(true);
+    setErrorMessage("");
+
+    try {
+      await login({
+        nisn: data.nisn,
+        password: data.password,
+      });
+
       setShowTokenModal(true);
       setTokenError("");
       tokenForm.reset();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Kredensial akun salah atau belum terdaftar.";
+
+      setErrorMessage(message);
+      setCurrentScreen("error");
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const onTokenSubmit = (data: TokenFormData) => {
-    // Simulate token validation
-    if (data.token === "wrong") {
-      setTokenError("Token salah atau belum valid");
-    } else {
+  const onTokenSubmit = async (data: TokenFormData) => {
+    setIsSubmittingToken(true);
+    setTokenError("");
+
+    try {
+      // Don't store result if you're not using it
+      await submitAbsen(data.token);
+
       setShowTokenModal(false);
       setCurrentScreen("success");
+
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 3000);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Token salah atau belum valid";
+
+      setTokenError(message);
+    } finally {
+      setIsSubmittingToken(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-200 via-slate-300 to-slate-200 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-200 via-slate-300 to-slate-200 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Login Screen (Screen 1) */}
+        {/* Login Screen */}
         {currentScreen === "login" && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-blue-500 text-white p-6 text-center">
               <h1 className="text-2xl font-bold">Selamat Datang</h1>
-              <p className="text-sm text-blue-100 mt-1">Masuk ke akun anda untuk melanjutkan</p>
+              <p className="text-sm text-blue-100 mt-1">
+                Masuk ke akun anda untuk melanjutkan
+              </p>
             </div>
-            
+
             <div className="p-6">
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+              <form
+                onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                className="space-y-4"
+              >
                 <div>
                   <Label htmlFor="nomorInduk" className="text-gray-700">
                     Nomor Induk Siswa
@@ -101,12 +146,13 @@ export default function LoginPage() {
                       type="text"
                       placeholder="Masukkan Nomor Induk"
                       className="pl-10"
-                      {...loginForm.register("nomorInduk")}
+                      disabled={isLoggingIn}
+                      {...loginForm.register("nisn")}
                     />
                   </div>
-                  {loginForm.formState.errors.nomorInduk && (
+                  {loginForm.formState.errors.nisn && (
                     <p className="text-sm text-red-500 mt-1">
-                      {loginForm.formState.errors.nomorInduk.message}
+                      {loginForm.formState.errors.nisn.message}
                     </p>
                   )}
                 </div>
@@ -122,6 +168,7 @@ export default function LoginPage() {
                       type="password"
                       placeholder="Masukkan Password"
                       className="pl-10"
+                      disabled={isLoggingIn}
                       {...loginForm.register("password")}
                     />
                   </div>
@@ -136,7 +183,8 @@ export default function LoginPage() {
                   <Checkbox
                     id="ingatSaya"
                     checked={loginForm.watch("ingatSaya")}
-                    onCheckedChange={(checked) => 
+                    disabled={isLoggingIn}
+                    onCheckedChange={(checked) =>
                       loginForm.setValue("ingatSaya", checked as boolean)
                     }
                   />
@@ -148,122 +196,48 @@ export default function LoginPage() {
                   </label>
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600">
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Masuk
-                </Button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Token Screen (Screen 2) */}
-        {currentScreen === "token" && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-blue-500 text-white p-6 text-center">
-              <h1 className="text-2xl font-bold">Selamat Datang</h1>
-              <p className="text-sm text-blue-100 mt-1">Masuk ke akun anda untuk melanjutkan</p>
-            </div>
-            
-            <div className="p-6">
-              <div className="bg-white border-2 border-blue-500 rounded-lg p-4 mb-4">
-                <h2 className="font-bold text-lg text-center mb-1">
-                  Silahkan Masukkan
-                </h2>
-                <h2 className="font-bold text-lg text-center">
-                  Token Absen Hari Ini
-                </h2>
-              </div>
-
-              <form onSubmit={tokenForm.handleSubmit(onTokenSubmit)} className="space-y-4">
-                <div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="token"
-                      type="text"
-                      placeholder="Masukkan Token"
-                      className="pl-10"
-                      {...tokenForm.register("token")}
-                    />
-                  </div>
-                  {tokenForm.formState.errors.token && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {tokenForm.formState.errors.token.message}
-                    </p>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-500 hover:bg-blue-600"
+                  disabled={isLoggingIn}
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Masuk
+                    </>
                   )}
-                </div>
-
-                <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600">
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Masuk
                 </Button>
               </form>
             </div>
           </div>
         )}
 
-        {/* Token Screen (Screen 2) */}
-        {currentScreen === "token" && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-blue-500 text-white p-6 text-center">
-              <h1 className="text-2xl font-bold">Selamat Datang</h1>
-              <p className="text-sm text-blue-100 mt-1">Masuk ke akun anda untuk melanjutkan</p>
-            </div>
-            
-            <div className="p-6">
-              <div className="bg-white border-2 border-blue-500 rounded-lg p-4 mb-4">
-                <h2 className="font-bold text-lg text-center mb-1">
-                  Silahkan Masukkan
-                </h2>
-                <h2 className="font-bold text-lg text-center">
-                  Token Absen Hari Ini
-                </h2>
-              </div>
-
-              <form onSubmit={tokenForm.handleSubmit(onTokenSubmit)} className="space-y-4">
-                <div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="token"
-                      type="text"
-                      placeholder="Masukkan Token"
-                      className="pl-10"
-                      {...tokenForm.register("token")}
-                    />
-                  </div>
-                  {tokenForm.formState.errors.token && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {tokenForm.formState.errors.token.message}
-                    </p>
-                  )}
-                </div>
-
-                <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600">
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Masuk
-                </Button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Error Screen - Login Error (Screen 3) */}
+        {/* Error Screen - Login Error */}
         {currentScreen === "error" && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-blue-500 text-white p-6 text-center">
               <h1 className="text-2xl font-bold">Selamat Datang</h1>
-              <p className="text-sm text-blue-100 mt-1">Masuk ke akun anda untuk melanjutkan</p>
+              <p className="text-sm text-blue-100 mt-1">
+                Masuk ke akun anda untuk melanjutkan
+              </p>
             </div>
-            
+
             <div className="p-6">
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700">{errorMessage}</p>
               </div>
 
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+              <form
+                onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                className="space-y-4"
+              >
                 <div>
                   <Label htmlFor="nomorInduk2" className="text-gray-700">
                     Nomor Induk Siswa
@@ -275,7 +249,8 @@ export default function LoginPage() {
                       type="text"
                       placeholder="Masukkan Nomor Induk"
                       className="pl-10"
-                      {...loginForm.register("nomorInduk")}
+                      disabled={isLoggingIn}
+                      {...loginForm.register("nisn")}
                     />
                   </div>
                 </div>
@@ -291,6 +266,7 @@ export default function LoginPage() {
                       type="password"
                       placeholder="Masukkan Password"
                       className="pl-10"
+                      disabled={isLoggingIn}
                       {...loginForm.register("password")}
                     />
                   </div>
@@ -300,7 +276,8 @@ export default function LoginPage() {
                   <Checkbox
                     id="ingatSaya2"
                     checked={loginForm.watch("ingatSaya")}
-                    onCheckedChange={(checked) => 
+                    disabled={isLoggingIn}
+                    onCheckedChange={(checked) =>
                       loginForm.setValue("ingatSaya", checked as boolean)
                     }
                   />
@@ -312,31 +289,40 @@ export default function LoginPage() {
                   </label>
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600">
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Masuk
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-500 hover:bg-blue-600"
+                  disabled={isLoggingIn}
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Masuk
+                    </>
+                  )}
                 </Button>
               </form>
             </div>
           </div>
         )}
 
-        {/* Success Screen (Screen 5) */}
+        {/* Success Screen */}
         {currentScreen === "success" && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-blue-500 text-white p-6 text-center">
               <h1 className="text-2xl font-bold">Selamat Datang</h1>
             </div>
-            
+
             <div className="p-6 flex flex-col items-center justify-center py-12">
               <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 flex flex-col items-center">
                 <CheckCircle2 className="h-24 w-24 text-green-500 mb-4" />
-                <h2 className="text-2xl font-bold text-center">
-                  Anda sudah
-                </h2>
-                <h2 className="text-2xl font-bold text-center">
-                  TRABSEN!
-                </h2>
+                <h2 className="text-2xl font-bold text-center">Anda sudah</h2>
+                <h2 className="text-2xl font-bold text-center">TRABSEN!</h2>
               </div>
             </div>
           </div>
@@ -356,10 +342,13 @@ export default function LoginPage() {
               </div>
             </DialogHeader>
 
-            <form onSubmit={tokenForm.handleSubmit(onTokenSubmit)} className="space-y-4 mt-2">
+            <form
+              onSubmit={tokenForm.handleSubmit(onTokenSubmit)}
+              className="space-y-4 mt-2"
+            >
               {tokenError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start space-x-2">
-                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-red-700">{tokenError}</p>
                 </div>
               )}
@@ -372,6 +361,7 @@ export default function LoginPage() {
                     type="text"
                     placeholder="Masukkan Token"
                     className="pl-10"
+                    disabled={isSubmittingToken}
                     {...tokenForm.register("token")}
                   />
                 </div>
@@ -382,9 +372,22 @@ export default function LoginPage() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600">
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Masuk
+              <Button
+                type="submit"
+                className="w-full bg-blue-500 hover:bg-blue-600"
+                disabled={isSubmittingToken}
+              >
+                {isSubmittingToken ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Masuk
+                  </>
+                )}
               </Button>
             </form>
           </DialogContent>
