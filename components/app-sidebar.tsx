@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Download,
 } from 'lucide-react'
 
 export function AppSidebar() {
@@ -27,6 +28,11 @@ export function AppSidebar() {
       label: 'Token Generation',
       href: '/admin/token',
       icon: Key,
+    },
+    {
+      label: 'Export Data',
+      href: '/admin/export',
+      icon: Download,
     },
   ]
 

@@ -10,9 +10,6 @@ const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard - Token & Attendance Management',
-  description: 'Manage attendance tokens, generate QR codes, and track attendance records with an intuitive admin dashboard',
-  keywords: ['admin', 'dashboard', 'attendance', 'token', 'management'],
-  generator: 'v0.app',
   openGraph: {
     title: 'Admin Dashboard',
     description: 'Token and Attendance Management System',

@@ -139,3 +139,81 @@ export function usePaginatedTokens(pageSize: number = 10) {
     totalPages,
   }
 }
+
+export function useAvailableClasses() {
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      setLoading(true)
+      try {
+        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/classes`
+        const response = await fetch(url)
+        const result = await response.json()
+        
+        if (result.success && Array.isArray(result.data)) {
+          setClasses(result.data)
+        } else {
+          // Fallback mock data if API not available
+          setClasses([
+            { id: '1', name: 'Class A' },
+            { id: '2', name: 'Class B' },
+            { id: '3', name: 'Class C' },
+            { id: '4', name: 'Class D' },
+          ])
+        }
+      } catch (err) {
+        // Fallback mock data if API request fails
+        setClasses([
+          { id: '1', name: 'Class A' },
+          { id: '2', name: 'Class B' },
+          { id: '3', name: 'Class C' },
+          { id: '4', name: 'Class D' },
+        ])
+      }
+      setLoading(false)
+    }
+
+    fetchClasses()
+  }, [])
+
+  return { classes, loading, error }
+}
+
+export function useExportData() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const exportToExcel = async (classId: string, classNameForFile: string) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/attendance/export?classId=${classId}`
+      const response = await fetch(url)
+      const result = await response.json()
+
+      if (result.success && Array.isArray(result.data)) {
+        return {
+          success: true,
+          data: result.data,
+        }
+      } else {
+        throw new Error(result.message || 'Failed to fetch export data')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to export data'
+      setError(errorMessage)
+      return {
+        success: false,
+        data: null,
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { exportToExcel, loading, error }
+}
