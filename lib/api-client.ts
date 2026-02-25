@@ -53,8 +53,6 @@ export const tokenAPI = {
   getAll: () => apiCall('/tokens'),
   getOne: (id: string) => apiCall(`/tokens/${id}`),
   create: (payload: {
-    name: string
-    type: string
     validityHours: number
   }) =>
     apiCall('/tokens', {

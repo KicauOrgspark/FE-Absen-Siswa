@@ -35,8 +35,6 @@ export function TokenGenerationForm({
 }: TokenGenerationFormProps) {
   const form = useForm({
     defaultValues: {
-      name: '',
-      type: 'attendance',
       validityHours: '24',
     },
   })
@@ -44,13 +42,9 @@ export function TokenGenerationForm({
   const { generate, loading } = useGenerateToken()
 
   async function onSubmit(values: {
-    name: string
-    type: string
     validityHours: string
   }) {
     const result = await generate({
-      name: values.name,
-      type: values.type as 'attendance' | 'event' | 'custom',
       validityHours: parseInt(values.validityHours),
     })
 
@@ -74,60 +68,6 @@ export function TokenGenerationForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Token Name */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Token Name/Description</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Monday Class Token"
-                      disabled={loading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Give your token a meaningful name
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Token Type */}
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Token Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={loading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="attendance">Attendance</SelectItem>
-                      <SelectItem value="event">Event</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select the type of token you want to generate
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Validity Hours */}
             <FormField
               control={form.control}
               name="validityHours"
@@ -150,7 +90,6 @@ export function TokenGenerationForm({
               )}
             />
 
-            {/* Submit Button */}
             <Button
               type="submit"
               disabled={loading}

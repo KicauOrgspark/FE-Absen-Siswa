@@ -11,8 +11,6 @@ export interface Token {
 }
 
 export interface TokenRequest {
-  name: string
-  type: 'attendance' | 'event' | 'custom'
   validityHours: number
 }
 
