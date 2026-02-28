@@ -72,14 +72,17 @@ export default function LoginPage() {
     setErrorMessage("");
 
     try {
-      await login({
+      const result = await login({
         nisn: data.nisn,
         password: data.password,
       });
 
-      setShowTokenModal(true);
-      setTokenError("");
-      tokenForm.reset();
+      if (result.role === "guru") {
+        window.location.href = "/admin";
+        localStorage.setItem("authToken", result.access_token);
+      } else {
+        setShowTokenModal(true);
+      }
     } catch (error) {
       const message =
         error instanceof Error

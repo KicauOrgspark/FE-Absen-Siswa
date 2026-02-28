@@ -72,7 +72,7 @@ export function AppSidebar() {
                     : 'text-slate-300 hover:bg-slate-800'
                 )}
               >
-                <Icon size={20} className="flex-shrink-0" />
+                <Icon size={20} className="shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
               </Button>
             </Link>
@@ -89,7 +89,7 @@ export function AppSidebar() {
             collapsed && 'justify-center'
           )}
         >
-          <LogOut size={20} className="flex-shrink-0" />
+          <LogOut size={20} className="shrink-0" />
           {!collapsed && <span>Logout</span>}
         </Button>
       </div>

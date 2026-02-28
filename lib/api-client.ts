@@ -2,7 +2,7 @@ import { ApiError, ApiResponse } from './types'
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://reihan.biz.id/api/v1'
+  'http://127.0.0.1:3000/api/v1'
 
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>

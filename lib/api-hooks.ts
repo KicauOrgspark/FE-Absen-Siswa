@@ -155,96 +155,76 @@ export function usePaginatedTokens(pageSize: number = 10) {
 }
 
 export function useAvailableClasses() {
-  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const classes = [
+    { id: "X-RPL-1", name: "X RPL 1" },
+    { id: "X-RPL-2", name: "X RPL 2" },
+    { id: "XI-RPL-1", name: "XI RPL 1" },
+    { id: "XI-RPL-2", name: "XI RPL 2" },
+    { id: "XII-RPL-1", name: "XII RPL 1" },
 
-  useEffect(() => {
-    const fetchClasses = async () => {
-      setLoading(true)
-      try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/classes`
-        const response = await fetch(url)
-        const result = await response.json()
-        
-        if (result.success && Array.isArray(result.data)) {
-          setClasses(result.data)
-        } else {
-          // Fallback mock data if API not available
-          setClasses([
-            { id: 'XI-RPL-2', name: 'XI RPL 2' },
-            { id: '2', name: 'Class B' },
-            { id: '3', name: 'Class C' },
-            { id: '4', name: 'Class D' },
-          ])
-        }
-      } catch (err) {
-        // Fallback mock data if API request fails
-        setClasses([
-          { id: 'XI-RPL-2', name: 'XI RPL 2' },
-          { id: '2', name: 'Class B' },
-          { id: '3', name: 'Class C' },
-          { id: '4', name: 'Class D' },
-        ])
-      }
-      setLoading(false)
-    }
+    { id: "X-TKJ-1", name: "X TKJ 1" },
+    { id: "XI-TKJ-1", name: "XI TKJ 1" },
 
-    fetchClasses()
-  }, [])
+    { id: "X-MM-1", name: "X MM 1" },
+  ]
 
-  return { classes, loading, error }
+  return {
+    classes,
+    loading: false,
+    error: null,
+  }
 }
+
 
 export function useExportData() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const exportToExcel = async (filters: {
-    exportType: string
     classId?: string
     departmentId?: string
-    startDate?: string
-    endDate?: string
+    attendanceDate?: string
   }) => {
     setLoading(true)
     setError(null)
 
     try {
       const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+        process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3000/api/v1'
 
       const params = new URLSearchParams()
 
-      if (filters.exportType) params.append('type', filters.exportType)
-      if (filters.classId) params.append('classId', filters.classId)
-      if (filters.departmentId)
-        params.append('departmentId', filters.departmentId)
-      if (filters.startDate) params.append('startDate', filters.startDate)
-      if (filters.endDate) params.append('endDate', filters.endDate)
+      // 🔥 SAMAKAN DENGAN BACKEND
+      if (filters.classId) params.append('kelas', filters.classId)
+      if (filters.departmentId) params.append('jurusan', filters.departmentId)
+      if (filters.attendanceDate) params.append('tanggal', filters.attendanceDate)
 
-      const url = `${baseUrl}/api/attendance/export?${params.toString()}`
+      const url = `${baseUrl}/export/attendance?${params.toString()}`
 
       const response = await fetch(url)
-      const result = await response.json()
 
-      if (result.success && Array.isArray(result.data)) {
-        return {
-          success: true,
-          data: result.data,
-        }
-      }
+      if (!response.ok) throw new Error('Failed to export')
 
-      throw new Error(result.message || 'Failed to export data')
+      // 🔥 ambil file excel
+      const blob = await response.blob()
+
+      const downloadUrl = window.URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = `Attendance_${filters.attendanceDate || 'data'}.xlsx`
+      a.click()
+
+      window.URL.revokeObjectURL(downloadUrl)
+
+      return { success: true }
     } catch (err) {
-      const errorMessage =
+      const message =
         err instanceof Error ? err.message : 'Export failed'
-      setError(errorMessage)
 
-      return {
-        success: false,
-        data: null,
-      }
+      setError(message)
+
+      return { success: false }
     } finally {
       setLoading(false)
     }
@@ -252,42 +232,21 @@ export function useExportData() {
 
   return { exportToExcel, loading, error }
 }
+
 export function useAvailableDepartments() {
-  const [departments, setDepartments] = useState<
-    Array<{ id: string; name: string }>
-  >([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const departments = [
+    { id: "RPL", name: "RPL" },
+    { id: "DKV", name: "DKV" },
+    { id: "LPB", name: "LPB" },
+    { id: "MM", name: "MM" },
+    { id: "PKM", name: "PKM" },
+    { id: "TKJ", name: "TKJ" },
+    { id: "TOI", name: "TOI" },
+  ]
 
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      setLoading(true)
-      try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/departments`
-        const response = await fetch(url)
-        const result = await response.json()
-
-        if (result.success && Array.isArray(result.data)) {
-          setDepartments(result.data)
-        } else {
-          setDepartments([
-            { id: 'RPL', name: 'RPL' },
-            { id: 'TKJ', name: 'TKJ' },
-            { id: 'MM', name: 'Multimedia' },
-          ])
-        }
-      } catch {
-        setDepartments([
-          { id: 'RPL', name: 'RPL' },
-          { id: 'TKJ', name: 'TKJ' },
-          { id: 'MM', name: 'Multimedia' },
-        ])
-      }
-      setLoading(false)
-    }
-
-    fetchDepartments()
-  }, [])
-
-  return { departments, loading, error }
+  return {
+    departments,
+    loading: false,
+    error: null,
+  }
 }

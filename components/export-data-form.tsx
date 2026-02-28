@@ -1,7 +1,6 @@
 'use client'
 
 import { useForm } from 'react-hook-form'
-import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -11,21 +10,31 @@ import {
   FormItem,
   FormLabel,
 } from '@/components/ui/form'
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+
+import {
+  Command,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandEmpty,
+} from '@/components/ui/command'
+
+import { Check, ChevronsUpDown, Download, FileSpreadsheet } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+
 import {
   useAvailableClasses,
   useAvailableDepartments,
   useExportData,
 } from '@/lib/api-hooks'
+
 import { useToastNotify } from '@/lib/use-toast-notify'
-import { Download, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export function ExportDataForm() {
@@ -33,32 +42,20 @@ export function ExportDataForm() {
     defaultValues: {
       classId: '',
       departmentId: '',
-      attendanceDate: '', // 🔥 cuma 1 tanggal
+      attendanceDate: '',
     },
   })
 
   const { classes, loading: classesLoading } = useAvailableClasses()
   const { departments } = useAvailableDepartments()
   const { exportToExcel, loading: exportLoading } = useExportData()
-  const toast = useToastNotify()
 
-  const [classSearch, setClassSearch] = useState('')
+  const toast = useToastNotify()
 
   const isLoading = classesLoading || exportLoading
 
-  const filteredClasses = useMemo(() => {
-    if (!classSearch) return classes
-    return classes.filter((cls) =>
-      cls.name.toLowerCase().includes(classSearch.toLowerCase())
-    )
-  }, [classSearch, classes])
-
   async function onSubmit(values: any) {
-    if (
-      !values.classId &&
-      !values.departmentId &&
-      !values.attendanceDate
-    ) {
+    if (!values.classId && !values.departmentId && !values.attendanceDate) {
       toast.warning(
         'Filter Required',
         'Please select at least one filter before exporting'
@@ -82,13 +79,9 @@ export function ExportDataForm() {
       ]
 
       const filenameDate =
-        values.attendanceDate ||
-        new Date().toISOString().split('T')[0]
+        values.attendanceDate || new Date().toISOString().split('T')[0]
 
-      XLSX.writeFile(
-        workbook,
-        `Attendance_${filenameDate}.xlsx`
-      )
+      XLSX.writeFile(workbook, `Attendance_${filenameDate}.xlsx`)
 
       toast.success(
         'Export Successful',
@@ -96,7 +89,6 @@ export function ExportDataForm() {
       )
 
       form.reset()
-      setClassSearch('')
     } else {
       toast.error('Export Failed', 'Failed to export data.')
     }
@@ -127,51 +119,55 @@ export function ExportDataForm() {
           >
             {/* CLASS + DEPARTMENT */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* CLASS WITH SEARCH */}
+
+              {/* 🔥 SEARCHABLE CLASS */}
               <FormField
                 control={form.control}
                 name="classId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Class (Optional)</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="All Classes" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <div className="p-2">
-                            <input
-                              type="text"
-                              placeholder="Search class..."
-                              value={classSearch}
-                              onChange={(e) =>
-                                setClassSearch(e.target.value)
-                              }
-                              className="w-full border rounded-md px-2 py-1 text-sm"
-                            />
-                          </div>
 
-                          {filteredClasses.length > 0 ? (
-                            filteredClasses.map((cls) => (
-                              <SelectItem
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between h-11"
+                        >
+                          {field.value
+                            ? classes.find(c => c.id === field.value)?.name
+                            : 'All Classes'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="p-0 w-full">
+                        <Command>
+                          <CommandInput placeholder="Search class..." />
+
+                          <CommandList>
+                            <CommandEmpty>No class found</CommandEmpty>
+
+                            {classes.map((cls) => (
+                              <CommandItem
                                 key={cls.id}
-                                value={cls.id}
+                                value={cls.name}
+                                onSelect={() => field.onChange(cls.id)}
                               >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    field.value === cls.id
+                                      ? 'opacity-100'
+                                      : 'opacity-0'
+                                  }`}
+                                />
                                 {cls.name}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="px-3 py-2 text-sm text-gray-500">
-                              No class found
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                              </CommandItem>
+                            ))}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </FormItem>
                 )}
               />
@@ -184,31 +180,24 @@ export function ExportDataForm() {
                   <FormItem>
                     <FormLabel>Department (Optional)</FormLabel>
                     <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
+                      <select
+                        {...field}
+                        className="w-full h-11 border rounded-md px-3"
                       >
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="All Departments" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {departments.map((dept) => (
-                            <SelectItem
-                              key={dept.id}
-                              value={dept.id}
-                            >
-                              {dept.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <option value="">All Departments</option>
+                        {departments.map((dept) => (
+                          <option key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </option>
+                        ))}
+                      </select>
                     </FormControl>
                   </FormItem>
                 )}
               />
             </div>
 
-            {/* 🔥 SINGLE DATE */}
+            {/* DATE */}
             <FormField
               control={form.control}
               name="attendanceDate"
@@ -229,12 +218,12 @@ export function ExportDataForm() {
             {/* SUBMIT */}
             <Button
               type="submit"
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
               disabled={isLoading}
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
-                  <LoadingSpinner size="sm" variant="dots" />
+                  <LoadingSpinner size="sm" />
                   Processing...
                 </div>
               ) : (

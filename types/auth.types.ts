@@ -6,7 +6,7 @@ export interface LoginCredentials {
 export interface LoginResponse {
     message: string;
     access_token: string;  
-    username: string;
+    role: string;
 }
 
 export interface User {
@@ -19,14 +19,17 @@ export interface User {
     class_group: string;
 }
 
-export interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  submitAbsen: (tokenCode: string) => Promise<{ message: string; status: string }>;
-}
+// interface AuthContextType {
+//   user: User | null;
+//   isAuthenticated: boolean;
+//   isLoading: boolean;
+
+//   login: (credentials: LoginCredentials) => Promise<LoginResponse>; // ✅ FIX
+
+//   logout: () => void;
+//   submitAbsen: (tokenCode: string) => Promise<{ message: string; status: string }>;
+// }
+
 
 /**
  * Body Login
