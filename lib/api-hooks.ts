@@ -172,7 +172,7 @@ export function useAvailableClasses() {
         } else {
           // Fallback mock data if API not available
           setClasses([
-            { id: '1', name: 'Class A' },
+            { id: 'XI-RPL-2', name: 'XI RPL 2' },
             { id: '2', name: 'Class B' },
             { id: '3', name: 'Class C' },
             { id: '4', name: 'Class D' },
@@ -181,7 +181,7 @@ export function useAvailableClasses() {
       } catch (err) {
         // Fallback mock data if API request fails
         setClasses([
-          { id: '1', name: 'Class A' },
+          { id: 'XI-RPL-2', name: 'XI RPL 2' },
           { id: '2', name: 'Class B' },
           { id: '3', name: 'Class C' },
           { id: '4', name: 'Class D' },
@@ -200,12 +200,31 @@ export function useExportData() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const exportToExcel = async (classId: string, classNameForFile: string) => {
+  const exportToExcel = async (filters: {
+    exportType: string
+    classId?: string
+    departmentId?: string
+    startDate?: string
+    endDate?: string
+  }) => {
     setLoading(true)
     setError(null)
 
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/attendance/export?classId=${classId}`
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+      const params = new URLSearchParams()
+
+      if (filters.exportType) params.append('type', filters.exportType)
+      if (filters.classId) params.append('classId', filters.classId)
+      if (filters.departmentId)
+        params.append('departmentId', filters.departmentId)
+      if (filters.startDate) params.append('startDate', filters.startDate)
+      if (filters.endDate) params.append('endDate', filters.endDate)
+
+      const url = `${baseUrl}/api/attendance/export?${params.toString()}`
+
       const response = await fetch(url)
       const result = await response.json()
 
@@ -214,12 +233,14 @@ export function useExportData() {
           success: true,
           data: result.data,
         }
-      } else {
-        throw new Error(result.message || 'Failed to fetch export data')
       }
+
+      throw new Error(result.message || 'Failed to export data')
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to export data'
+      const errorMessage =
+        err instanceof Error ? err.message : 'Export failed'
       setError(errorMessage)
+
       return {
         success: false,
         data: null,
@@ -230,4 +251,43 @@ export function useExportData() {
   }
 
   return { exportToExcel, loading, error }
+}
+export function useAvailableDepartments() {
+  const [departments, setDepartments] = useState<
+    Array<{ id: string; name: string }>
+  >([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      setLoading(true)
+      try {
+        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/departments`
+        const response = await fetch(url)
+        const result = await response.json()
+
+        if (result.success && Array.isArray(result.data)) {
+          setDepartments(result.data)
+        } else {
+          setDepartments([
+            { id: 'RPL', name: 'RPL' },
+            { id: 'TKJ', name: 'TKJ' },
+            { id: 'MM', name: 'Multimedia' },
+          ])
+        }
+      } catch {
+        setDepartments([
+          { id: 'RPL', name: 'RPL' },
+          { id: 'TKJ', name: 'TKJ' },
+          { id: 'MM', name: 'Multimedia' },
+        ])
+      }
+      setLoading(false)
+    }
+
+    fetchDepartments()
+  }, [])
+
+  return { departments, loading, error }
 }
