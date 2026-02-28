@@ -1,18 +1,15 @@
 'use client'
 
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { motion } from 'framer-motion'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form'
 import {
   Select,
@@ -22,7 +19,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { useAvailableClasses, useExportData } from '@/lib/api-hooks'
+import {
+  useAvailableClasses,
+  useAvailableDepartments,
+  useExportData,
+} from '@/lib/api-hooks'
 import { useToastNotify } from '@/lib/use-toast-notify'
 import { Download, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -31,187 +32,221 @@ export function ExportDataForm() {
   const form = useForm({
     defaultValues: {
       classId: '',
+      departmentId: '',
+      attendanceDate: '', // 🔥 cuma 1 tanggal
     },
   })
 
   const { classes, loading: classesLoading } = useAvailableClasses()
+  const { departments } = useAvailableDepartments()
   const { exportToExcel, loading: exportLoading } = useExportData()
   const toast = useToastNotify()
 
+  const [classSearch, setClassSearch] = useState('')
+
   const isLoading = classesLoading || exportLoading
 
-  async function onSubmit(values: { classId: string }) {
-    if (!values.classId) {
-      toast.warning('Selection Required', 'Please select a class to export')
+  const filteredClasses = useMemo(() => {
+    if (!classSearch) return classes
+    return classes.filter((cls) =>
+      cls.name.toLowerCase().includes(classSearch.toLowerCase())
+    )
+  }, [classSearch, classes])
+
+  async function onSubmit(values: any) {
+    if (
+      !values.classId &&
+      !values.departmentId &&
+      !values.attendanceDate
+    ) {
+      toast.warning(
+        'Filter Required',
+        'Please select at least one filter before exporting'
+      )
       return
     }
 
-    const selectedClass = classes.find((c) => c.id === values.classId)
-    const className = selectedClass?.name || 'Export'
-
-    const result = await exportToExcel(values.classId, className)
+    const result = await exportToExcel(values)
 
     if (result.success && result.data) {
-      // Create workbook and worksheet
       const worksheet = XLSX.utils.json_to_sheet(result.data)
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance')
 
-      // Set column widths
-      const columnWidths = [
-        { wch: 15 }, // ID
-        { wch: 20 }, // Name
-        { wch: 15 }, // Date
-        { wch: 10 }, // Status
-        { wch: 25 }, // Notes
+      worksheet['!cols'] = [
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 25 },
       ]
-      worksheet['!cols'] = columnWidths
 
-      // Generate filename with date
-      const now = new Date()
-      const dateStr = now.toISOString().split('T')[0]
-      const filename = `${className}_Attendance_${dateStr}.xlsx`
+      const filenameDate =
+        values.attendanceDate ||
+        new Date().toISOString().split('T')[0]
 
-      // Write file
-      XLSX.writeFile(workbook, filename)
+      XLSX.writeFile(
+        workbook,
+        `Attendance_${filenameDate}.xlsx`
+      )
 
       toast.success(
         'Export Successful',
-        `Data from ${className} has been exported to Excel`
+        `Exported ${result.data.length} records`
       )
-      form.reset()
-    } else {
-      toast.error(
-        'Export Failed',
-        'Failed to export data. Please try again.'
-      )
-    }
-  }
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4, ease: 'easeOut' },
-    },
+      form.reset()
+      setClassSearch('')
+    } else {
+      toast.error('Export Failed', 'Failed to export data.')
+    }
   }
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="flex items-center gap-4"
-      >
+      {/* HEADER */}
+      <div className="flex items-center gap-4">
         <div className="p-3 bg-blue-100 rounded-lg">
           <FileSpreadsheet className="w-8 h-8 text-blue-600" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Export Data</h1>
-          <p className="text-slate-600 mt-1">
-            Export attendance records to Excel format
+          <h1 className="text-3xl font-bold text-slate-900">
+            Export Attendance
+          </h1>
+          <p className="text-slate-600">
+            Filter by class, department, or specific date
           </p>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Main Card */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <Card className="p-8 shadow-sm">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Class Selection */}
-              <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                  Select Class
-                </h2>
+      <Card className="p-8">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
+            {/* CLASS + DEPARTMENT */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* CLASS WITH SEARCH */}
+              <FormField
+                control={form.control}
+                name="classId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class (Optional)</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="All Classes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="p-2">
+                            <input
+                              type="text"
+                              placeholder="Search class..."
+                              value={classSearch}
+                              onChange={(e) =>
+                                setClassSearch(e.target.value)
+                              }
+                              className="w-full border rounded-md px-2 py-1 text-sm"
+                            />
+                          </div>
 
-                <FormField
-                  control={form.control}
-                  name="classId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Class</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={classesLoading}
-                        >
-                          <SelectTrigger className="w-full h-11">
-                            <SelectValue placeholder="Choose a class to export" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {classes.map((cls) => (
-                              <SelectItem key={cls.id} value={cls.id}>
+                          {filteredClasses.length > 0 ? (
+                            filteredClasses.map((cls) => (
+                              <SelectItem
+                                key={cls.id}
+                                value={cls.id}
+                              >
                                 {cls.name}
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormDescription>
-                        Select which class's attendance records you want to export
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              {/* Submit Button */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex gap-3 pt-4"
-              >
-                <Button
-                  type="submit"
-                  className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <LoadingSpinner size="sm" variant="dots" />
-                      <span>Processing...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Download size={18} />
-                      <span>Export to Excel</span>
-                    </div>
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-          </Form>
-        </Card>
-      </motion.div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No class found
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-      {/* Info Cards */}
-      <motion.div
-        variants={{
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: {
-              staggerChildren: 0.1,
-              delayChildren: 0.4,
-            },
-          },
-        }}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-      </motion.div>
+              {/* DEPARTMENT */}
+              <FormField
+                control={form.control}
+                name="departmentId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department (Optional)</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="All Departments" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem
+                              key={dept.id}
+                              value={dept.id}
+                            >
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* 🔥 SINGLE DATE */}
+            <FormField
+              control={form.control}
+              name="attendanceDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date (Optional)</FormLabel>
+                  <FormControl>
+                    <input
+                      type="date"
+                      {...field}
+                      className="w-full h-11 border rounded-md px-3"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* SUBMIT */}
+            <Button
+              type="submit"
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <LoadingSpinner size="sm" variant="dots" />
+                  Processing...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Download size={18} />
+                  Export to Excel
+                </div>
+              )}
+            </Button>
+          </form>
+        </Form>
+      </Card>
     </div>
   )
 }
