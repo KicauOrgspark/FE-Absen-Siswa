@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<LoginResponse>;
+  login: (credentials: LoginCredentials) => Promise<User | null>;
   logout: () => void;
   submitAbsen: (tokenCode: string) => Promise<{ message: string; status: string }>;
 }
@@ -28,23 +28,87 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // 🔥 CHECK AUTH SAAT LOAD APP
   useEffect(() => {
-    const initAuth = async () => {
-      const currentUser = await authAPI.getCurrentUser();
-      if (currentUser) setUser(currentUser);
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      let currentUser: User | null = null;
+      const cachedUserStr = localStorage.getItem('user');
+
+      if (cachedUserStr) {
+        const cachedUser = JSON.parse(cachedUserStr) as User;
+        if (cachedUser.role === 'guru' || cachedUser.role === 'admin') {
+          currentUser = cachedUser;
+        }
+      }
+
+      if (!currentUser) {
+        currentUser = await authAPI.getCurrentUser();
+      }
+
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+    } finally {
       setIsLoading(false);
     };
 
     initAuth();
   }, []);
 
-  // 🔥 LOGIN → HANYA SIMPAN TOKEN
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    setIsLoading(true);
+  const login = useCallback(async (credentials: LoginCredentials): Promise<User | null> => {
     try {
-      const result = await authAPI.login(credentials);
-      return result;
+      setIsLoading(true);
+      
+      const loginData = await authAPI.login(credentials);
+      
+      let userData: User | null = null;
+
+      if (loginData.role === 'guru' || loginData.role === 'admin') {
+        userData = {
+           id: 0,
+           nisn: credentials.nisn,
+           fullname: 'Admin/Guru',
+           username: 'admin',
+           role: loginData.role,
+           class_group: '',
+           message: loginData.Message || 'success'
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        userData = await authAPI.getCurrentUser();
+        if (userData) {
+           localStorage.setItem('user', JSON.stringify(userData));
+        }
+      }
+      
+      if (userData) {
+        setUser(userData);
+        if (userData.role === 'guru' || userData.role === 'admin') {
+          router.push('/admin');
+        }
+        
+      }
+      return userData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }

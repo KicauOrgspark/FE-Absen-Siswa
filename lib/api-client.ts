@@ -2,7 +2,7 @@ import { ApiError, ApiResponse } from './types'
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  'http://127.0.0.1:3000/api/v1'
+  '/api/v1'
 
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>
@@ -14,13 +14,12 @@ export async function apiCall<T>(
 ): Promise<ApiResponse<T> | ApiError> {
   try {
     const url = `${API_URL}${endpoint}`
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     }
 
-    // Add auth token if available
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -30,17 +29,28 @@ export async function apiCall<T>(
       headers,
     })
 
-    const data = await response.json()
+    const textResult = await response.text()
+    let data;
+
+    try {
+      data = JSON.parse(textResult)
+    } catch {
+      return {
+        success: false,
+        message: textResult || `HTTP Error ${response.status}`,
+        code: String(response.status)
+      } as ApiError
+    }
 
     if (!response.ok) {
       return {
         success: false,
-        message: data.message || 'An error occurred',
-        code: data.code,
-      }
+        message: data?.message || 'An error occurred',
+        code: data?.code || String(response.status),
+      } as ApiError
     }
 
-    return data
+    return data as ApiResponse<T>
   } catch (error) {
     console.error('[v0] API Error:', error)
     return {
@@ -51,8 +61,6 @@ export async function apiCall<T>(
 }
 
 export const tokenAPI = {
-  getAll: () => apiCall('/tokens'),
-  getOne: (id: string) => apiCall(`/tokens/${id}`),
 
   create: (payload: {
     duration: number
@@ -65,12 +73,27 @@ export const tokenAPI = {
         late_after: payload.late_after,
       }),
     }),
+
+  createDefault: () =>
+    apiCall('/token/create/default', {
+      method: 'POST',
+    }),
 }
-// Attendance API calls
-export const attendanceAPI = {
-  getStats: () => apiCall('/attendance/stats'),
-  getChart: (days: number = 30) =>
-    apiCall(`/attendance/chart?days=${days}`),
-  getRecent: (limit: number = 10) =>
-    apiCall(`/attendance/recent?limit=${limit}`),
+
+export const dashboardAPI = {
+  getStats: () => apiCall('/dashboard'),
+}
+
+export const exportAPI = {
+  getAttendance: (params?: { kelas?: string; jurusan?: string; tanggal?: string }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.kelas) searchParams.append('kelas', params.kelas)
+    if (params?.jurusan) searchParams.append('jurusan', params.jurusan)
+    if (params?.tanggal) searchParams.append('tanggal', params.tanggal)
+    return apiCall(`/export/attendance?${searchParams.toString()}`)
+  },
+}
+
+export const logsAPI = {
+  getHistory: () => apiCall('/logs/'),
 }

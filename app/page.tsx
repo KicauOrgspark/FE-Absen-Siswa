@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-// Validation schemas
 const loginSchema = z.object({
   nisn: z.string().min(1, "Nomor Induk harus diisi"),
   password: z.string().min(1, "Password harus diisi"),
@@ -48,7 +47,6 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isSubmittingToken, setIsSubmittingToken] = useState(false);
 
-  // Get auth functions from context
   const { login, submitAbsen } = useAuth();
 
   const loginForm = useForm<LoginFormData>({
@@ -72,16 +70,15 @@ export default function LoginPage() {
     setErrorMessage("");
 
     try {
-      const result = await login({
+      const userData = await login({
         nisn: data.nisn,
         password: data.password,
       });
 
-      if (result.role === "guru") {
-        window.location.href = "/admin";
-        localStorage.setItem("authToken", result.access_token);
-      } else {
+      if (userData && userData.role === 'siswa') {
         setShowTokenModal(true);
+        setTokenError("");
+        tokenForm.reset();
       }
     } catch (error) {
       const message =
@@ -101,7 +98,6 @@ export default function LoginPage() {
     setTokenError("");
 
     try {
-      // Don't store result if you're not using it
       await submitAbsen(data.token);
 
       setShowTokenModal(false);

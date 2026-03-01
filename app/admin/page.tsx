@@ -5,7 +5,6 @@ import {
   Users,
   CheckCircle,
   KeyRound,
-  TrendingUp,
   Zap,
 } from 'lucide-react'
 import { StatsCard } from '@/components/stats-card'
@@ -14,15 +13,14 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useAttendanceStats, useAttendanceChart } from '@/lib/api-hooks'
 
 export default function DashboardPage() {
-  const { stats, loading: statsLoading } = useAttendanceStats()
-  const { data: chartData, loading: chartLoading } = useAttendanceChart(30)
+  const { stats } = useAttendanceStats()
+  const { data: chartData, loading: chartLoading } = useAttendanceChart()
 
-  // Generate mock data if APIs aren't ready
   const mockChartData = chartData && chartData.length > 0
     ? chartData
     : Array.from({ length: 7 }, (_, i) => ({
         date: `Day ${i + 1}`,
-        attendance: Math.floor(Math.random() * 50) + 30,
+        attendance: 30 + (i * 7) % 50,
       }))
 
   const containerVariants = {
@@ -41,7 +39,7 @@ export default function DashboardPage() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.4, ease: 'easeOut' },
+      transition: { duration: 0.4, ease: 'easeOut' as const },
     },
   }
 

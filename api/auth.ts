@@ -1,7 +1,7 @@
-// src/api/auth.ts
+
 import { LoginCredentials, LoginResponse, User } from "@/types/auth.types";
 
-const API_BASE_URL = "http://127.0.0.1:3000/api/v1";
+const API_BASE_URL = '/api/v1';
 
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
@@ -15,14 +15,13 @@ export const authAPI = {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Login failed");
+      throw new Error(error.error || error.message || 'Login failed');
     }
 
     const data = await response.json();
 
     console.log("LOGIN RESPONSE:", data);
 
-    // 🔥 AMBIL TOKEN DENGAN AMAN (SUPPORT SEMUA FORMAT)
     const token =
       data.access_token ??
       data.accessToken ??
@@ -33,7 +32,6 @@ export const authAPI = {
       throw new Error("Token tidak ditemukan di response backend");
     }
 
-    // 🔥 SIMPAN TOKEN
     localStorage.setItem("authToken", token);
 
     return {
@@ -54,11 +52,12 @@ export const authAPI = {
     });
 
     if (!response.ok) {
-      localStorage.removeItem("authToken");
+      localStorage.removeItem('authToken');
       return null;
     }
 
-    return response.json();
+    const responseData = await response.json();
+    return responseData.data as User;
   },
 
   submitAbsenToken: async (
@@ -84,8 +83,8 @@ export const authAPI = {
     return response.json();
   },
 
-  logout: () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
+  logout: (): void => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
   },
 };

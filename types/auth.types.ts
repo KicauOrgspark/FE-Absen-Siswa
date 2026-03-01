@@ -4,9 +4,11 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-    message: string;
+    Message?: string;
+    message?: string;
     access_token: string;  
-    role: string;
+    username?: string;
+    role?: string;
 }
 
 export interface User {
