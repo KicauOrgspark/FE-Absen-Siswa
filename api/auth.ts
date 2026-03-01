@@ -1,7 +1,6 @@
-
 import { LoginCredentials, LoginResponse, User } from "@/types/auth.types";
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = "/api/v1";
 
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
@@ -15,12 +14,10 @@ export const authAPI = {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || error.message || 'Login failed');
+      throw new Error(error.error || error.message || "Login failed");
     }
 
     const data = await response.json();
-
-    console.log("LOGIN RESPONSE:", data);
 
     const token =
       data.access_token ??
@@ -52,7 +49,7 @@ export const authAPI = {
     });
 
     if (!response.ok) {
-      localStorage.removeItem('authToken');
+      localStorage.removeItem("authToken");
       return null;
     }
 
@@ -83,8 +80,24 @@ export const authAPI = {
     return response.json();
   },
 
-  logout: (): void => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+  // ✅ FULL LOGOUT VERSION
+  logout: async (): Promise<void> => {
+    try {
+      const token = localStorage.getItem("authToken");
+
+      if (token) {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error("Logout API failed:", err);
+    } finally {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+    }
   },
 };

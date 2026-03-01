@@ -29,24 +29,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      
+      const token = localStorage.getItem("authToken");
+
       if (!token) {
         setIsLoading(false);
         return;
       }
 
       let currentUser: User | null = null;
-      const cachedUserStr = localStorage.getItem('user');
+      const cachedUserStr = localStorage.getItem("user");
 
       if (cachedUserStr) {
         const cachedUser = JSON.parse(cachedUserStr) as User;
-        if (cachedUser.role === 'guru' || cachedUser.role === 'admin') {
+        if (cachedUser.role === "guru" || cachedUser.role === "admin") {
           currentUser = cachedUser;
         }
       }
@@ -58,20 +55,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (currentUser) {
         setUser(currentUser);
       } else {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      console.error("Auth check failed:", error);
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
     } finally {
       setIsLoading(false);
-    };
+    }
+  };
 
-    initAuth();
-  }, []);
-
+  checkAuth();
+}, []);
   const login = useCallback(async (credentials: LoginCredentials): Promise<User | null> => {
     try {
       setIsLoading(true);

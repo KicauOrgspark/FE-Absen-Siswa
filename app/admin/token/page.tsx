@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { TokenGenerationForm } from '@/components/token-generation-form'
-import { TokenHistoryTable } from '@/components/token-history'
 import { useTokens, usePaginatedTokens } from '@/lib/api-hooks'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
