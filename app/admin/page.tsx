@@ -84,17 +84,6 @@ export default function DashboardPage() {
               {today}
             </p>
           </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className={`${cardClass} px-4 py-3 text-center min-w-[90px]`}>
-              <p className="text-2xl font-bold text-white">{stats?.todayAttendance || 0}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Hadir Hari Ini</p>
-            </div>
-            <div className={`${cardClass} px-4 py-3 text-center min-w-[90px]`}>
-              <p className="text-2xl font-bold text-blue-400">{stats?.activeTokens || 0}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Token Aktif</p>
-            </div>
-          </div>
         </div>
       </motion.div>
 

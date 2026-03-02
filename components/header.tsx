@@ -13,10 +13,19 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MobileSidebarDrawer } from '@/components/mobile-sidebar-drawer'
 import { useSidebar } from '@/context/sidebar-context'
+import { useRouter } from 'next/navigation'
+import { authAPI } from '@/api/auth'
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { collapsed } = useSidebar()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await authAPI.logout()
+    router.push('/')
+    router.refresh()
+  }
 
   return (
     <>
@@ -27,10 +36,12 @@ export function Header() {
         animate={{
           opacity: 1,
           y: 0,
-          // Sync left offset with sidebar width on desktop
-          left: typeof window !== 'undefined' && window.innerWidth >= 1024
-            ? collapsed ? 80 : 256
-            : 0,
+          left:
+            typeof window !== 'undefined' && window.innerWidth >= 1024
+              ? collapsed
+                ? 80
+                : 256
+              : 0,
         }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className="
@@ -95,6 +106,7 @@ export function Header() {
                 <span className="hidden sm:block text-sm font-medium">Admin</span>
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent
               align="end"
               className="
@@ -104,14 +116,21 @@ export function Header() {
                 text-slate-300 w-44 p-1
               "
             >
-              <DropdownMenuItem className="rounded-lg hover:bg-slate-800/60 hover:text-white focus:bg-slate-800/60 focus:text-white cursor-pointer text-sm">
+              <DropdownMenuItem className="rounded-lg hover:bg-slate-800/60 hover:text-white cursor-pointer text-sm">
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg hover:bg-slate-800/60 hover:text-white focus:bg-slate-800/60 focus:text-white cursor-pointer text-sm">
+
+              <DropdownMenuItem className="rounded-lg hover:bg-slate-800/60 hover:text-white cursor-pointer text-sm">
                 Settings
               </DropdownMenuItem>
+
               <DropdownMenuSeparator className="bg-slate-700/50 my-1" />
-              <DropdownMenuItem className="rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 focus:bg-red-950/40 focus:text-red-300 cursor-pointer text-sm">
+
+              {/* ✅ ACTIVE LOGOUT */}
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 cursor-pointer text-sm"
+              >
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
