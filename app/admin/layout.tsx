@@ -39,8 +39,8 @@ export default function AdminLayout({
         <div className="min-h-screen bg-[#0a0f1e]">
           {/* Ambient background effects */}
           <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-            <div className="absolute top-[-15%] left-[10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[120px]" />
-            <div className="absolute bottom-[-20%] right-[5%] w-[450px] h-[450px] rounded-full bg-indigo-600/8 blur-[100px]" />
+            <div className="absolute top-[-15%] left-[10%] w-[500px] h-125 rounded-full bg-blue-600/10 blur-[120px]" />
+            <div className="absolute bottom-[-20%] right-[5%] w-[450px] h-125 rounded-full bg-indigo-600/8 blur-[100px]" />
             <div
               className="absolute inset-0 opacity-[0.025]"
               style={{
