@@ -27,10 +27,21 @@ export interface AppError {
   message: string;
 }
 
+export interface SuccessTime {
+  date: Date;
+  receiptId: string;
+}
+
 /* ── constants ── */
 export const MAX_TOKEN_ATTEMPTS = 3;
 const LOGIN_TIMEOUT_MS = 15000;
 const STORAGE_KEY = "absen_remembered_nisn";
+
+/* ── receipt ID generator ── */
+function generateReceiptId() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
 
 /* ── error parsers ── */
 export function parseLoginError(error: unknown): AppError {
@@ -69,6 +80,7 @@ export function useLoginPage() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("login");
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [successTime, setSuccessTime] = useState<SuccessTime | null>(null);
 
   const [appError, setAppError] = useState<AppError | null>(null);
 
@@ -181,6 +193,13 @@ export function useLoginPage() {
       }
 
       await submitAbsen(data.token);
+
+      // ✅ Simpan waktu & receipt ID saat absen berhasil
+      setSuccessTime({
+        date: new Date(),
+        receiptId: generateReceiptId(),
+      });
+
       setShowTokenModal(false);
       setCurrentScreen("success");
       setTimeout(() => { window.location.href = "/"; }, 3000);
@@ -227,6 +246,7 @@ export function useLoginPage() {
     tokenBlocked,
     isLoggingIn,
     isSubmittingToken,
+    successTime,
     // forms
     loginForm,
     tokenForm,
