@@ -65,7 +65,7 @@ export function Header() {
 
           <div className="hidden sm:flex items-center gap-2">
             <div className="w-1.5 h-4 rounded-full bg-blue-500" />
-            <span className="text-slate-300 text-sm font-medium">Admin Panel</span>
+            <span className="text-slate-300 text-sm font-medium">Absen Admin</span>
           </div>
         </div>
 

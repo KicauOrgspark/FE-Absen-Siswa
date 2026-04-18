@@ -1,12 +1,59 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Fingerprint, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Fingerprint, CheckCircle2, Clock, Calendar, MapPin, Hash } from "lucide-react";
 import { useLoginPage } from "./hooks/useLoginPage";
 import { LoginFormBody } from "../components/LoginFormBody";
 import { TokenModal } from "../components/TokenModal";
 import { cardVariants } from "../lib/shared";
 
+/* ── format helpers ── */
+function formatTime(date: Date) {
+  return date.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/* ── receipt row ── */
+function ReceiptRow({
+  icon: Icon,
+  label,
+  value,
+  mono = false,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-dashed border-slate-700/50 last:border-0">
+      <span className="flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
+        <Icon className="h-3 w-3" />
+        {label}
+      </span>
+      <span className={`text-xs text-slate-200 text-right ${mono ? "font-mono tracking-wider" : "font-medium"}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════ */
 export default function LoginPage() {
   const {
     currentScreen,
@@ -25,6 +72,7 @@ export default function LoginPage() {
     handleRetry,
     handleCloseTokenModal,
     setShowPassword,
+    successTime,
   } = useLoginPage();
 
   return (
@@ -106,42 +154,91 @@ export default function LoginPage() {
               </motion.div>
             )}
 
-            {/* ── SUCCESS card ── */}
-            {currentScreen === "success" && (
+            {/* ── SUCCESS card — receipt style ── */}
+            {currentScreen === "success" && successTime && (
               <motion.div
                 key="success-card"
                 variants={cardVariants} initial="hidden" animate="visible" exit="exit"
                 className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
               >
-                <div className="px-6 pt-8 pb-6 text-center border-b border-slate-800/60">
-                  <h1 className="text-xl font-bold text-white tracking-tight">Selamat Datang</h1>
-                </div>
-                <div className="p-10 flex flex-col items-center gap-5">
+                {/* Header */}
+                <div className="px-6 pt-8 pb-5 text-center border-b border-slate-800/60">
                   <motion.div
                     initial={{ scale: 0, rotate: -20 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                    className="w-28 h-28 rounded-3xl bg-emerald-950/60 border-2 border-emerald-500/40 flex items-center justify-center shadow-lg shadow-emerald-900/30"
+                    className="w-16 h-16 rounded-2xl bg-emerald-950/60 border-2 border-emerald-500/40 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/30"
                   >
-                    <CheckCircle2 className="h-14 w-14 text-emerald-400" />
+                    <CheckCircle2 className="h-8 w-8 text-emerald-400" />
                   </motion.div>
                   <motion.div
-                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-center"
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
                   >
-                    <p className="text-slate-400 text-sm mb-1">Status absensi hari ini</p>
-                    <h2 className="text-3xl font-black text-white tracking-tight">TRABSEN! 🎉</h2>
-                    <p className="text-slate-500 text-xs mt-3">Mengalihkan ke beranda...</p>
+                    <h2 className="text-2xl font-black text-white tracking-tight">TRABSEN! 🎉</h2>
+                    <p className="text-sm text-emerald-400/80 font-medium mt-1">Absensi berhasil dicatat</p>
                   </motion.div>
-                  <motion.div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                </div>
+
+                {/* Receipt body */}
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="px-6 py-4"
+                >
+                  {/* Receipt ID */}
+                  <div className="flex items-center justify-center gap-1.5 mb-3">
+                    <Hash className="h-3 w-3 text-slate-600" />
+                    <span className="text-xs text-slate-600 font-mono tracking-widest">
+                      {successTime.receiptId}
+                    </span>
+                  </div>
+
+                  {/* Detail rows */}
+                  <div className="bg-slate-800/40 rounded-xl px-4 py-1 border border-slate-700/40">
+                    <ReceiptRow
+                      icon={Clock}
+                      label="Waktu"
+                      value={formatTime(successTime.date)}
+                      mono
+                    />
+                    <ReceiptRow
+                      icon={Calendar}
+                      label="Tanggal"
+                      value={formatDate(successTime.date)}
+                    />
+                    <ReceiptRow
+                      icon={MapPin}
+                      label="Lokasi"
+                      value="Area Sekolah ✓"
+                    />
+                  </div>
+
+                  {/* Status badge */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="mt-4 flex items-center justify-center"
+                  >
+                    <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-700/40 rounded-full px-4 py-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-xs text-emerald-400 font-semibold tracking-widest">HADIR</span>
+                    </div>
+                  </motion.div>
+                </motion.div>
+
+                {/* Progress bar */}
+                <div className="px-6 pb-6 pt-1">
+                  <p className="text-xs text-slate-600 text-center mb-2">Mengalihkan ke beranda...</p>
+                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-emerald-500 rounded-full"
                       initial={{ width: "0%" }}
                       animate={{ width: "100%" }}
                       transition={{ duration: 3, ease: "linear" }}
                     />
-                  </motion.div>
+                  </div>
                 </div>
               </motion.div>
             )}
