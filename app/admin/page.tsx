@@ -74,7 +74,7 @@ export default function DashboardPage() {
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs text-emerald-400 font-medium tracking-wide uppercase">
                 Sistem Aktif
-              </span>
+              </span> 
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight mb-1">
               Selamat Datang, Admin! 👋
