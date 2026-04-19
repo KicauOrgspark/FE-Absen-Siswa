@@ -140,14 +140,17 @@ export function useAttendanceChart() {
     const fetchChart = async () => {
       try {
         setLoading(true)
+
         const result = await dashboardAPI.getChart()
 
-        if ('data' in result && result.data) {
+        // ✅ cek apakah ini success response
+        if ('data' in result) {
           setData(result.data as ChartDataPoint[])
         } else {
           setError(result.message || 'Failed to fetch chart')
         }
-      } catch {
+
+      } catch (err) {
         setError('Failed to fetch chart')
       } finally {
         setLoading(false)
