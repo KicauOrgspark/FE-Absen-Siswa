@@ -42,18 +42,14 @@ export interface AttendanceStats {
 export interface ChartDataPoint {
   date: string
   attendance: number
-  total?: number
 }
 
 // API Response types
 export interface ApiResponse<T> {
-  success: boolean
   data: T
-  message?: string
+  message: string
 }
 
 export interface ApiError {
-  success: false
   message: string
-  code?: string
 }

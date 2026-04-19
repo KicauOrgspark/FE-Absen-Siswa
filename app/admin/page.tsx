@@ -43,12 +43,17 @@ export default function DashboardPage() {
   const { stats } = useAttendanceStats()
   const { data: chartData, loading: chartLoading } = useAttendanceChart()
 
-  const mockChartData = chartData && chartData.length > 0
-    ? chartData
-    : Array.from({ length: 7 }, (_, i) => ({
-        date: `Day ${i + 1}`,
-        attendance: 30 + (i * 7) % 50,
-      }))
+  const chartFormatted = chartData && chartData.length > 0
+  ? chartData.map((item: any) => ({
+      date: new Date(item.date).toLocaleDateString('id-ID', {
+        weekday: 'short', // Sen, Sel, Rab
+      }),
+      attendance: item.total, // 🔥 mapping penting
+    }))
+  : Array.from({ length: 7 }, (_, i) => ({
+      date: `Day ${i + 1}`,
+      attendance: 0,
+    }))
 
   const today = new Date().toLocaleDateString('id-ID', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -137,7 +142,7 @@ export default function DashboardPage() {
             ) : (
               <div className={`${cardClass} overflow-hidden`}>
                 <AttendanceChart
-                  data={mockChartData}
+                  data={chartFormatted}
                   title={chart.title}
                   type={chart.type}
                 />
@@ -146,62 +151,6 @@ export default function DashboardPage() {
           </motion.div>
         ))}
       </motion.div>
-
-      {/* ── Quick Stats ── */}
-      <motion.div
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-        className={`${cardClass} p-5 lg:p-6`}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-              <Activity className="h-4 w-4 text-blue-400" />
-            </div>
-            <h3 className="text-white font-semibold">Statistik Cepat</h3>
-          </div>
-          <button className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors">
-            Lihat Detail <ArrowUpRight className="h-3 w-3" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[
-            { label: 'Tingkat Kehadiran', value: '85%', icon: TrendingUp, positive: true },
-            { label: 'Rata-rata Per Hari', value: '42', icon: Users, positive: true },
-            { label: 'Bulan Ini', value: '1.2K', icon: CheckCircle, positive: true },
-          ].map((stat, i) => {
-            const Icon = stat.icon
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.08 + 0.4, duration: 0.4 }}
-                className="
-                  bg-slate-800/50 border border-slate-700/40 rounded-xl p-4
-                  hover:border-slate-600/60 hover:bg-slate-800/70
-                  transition-all duration-200 group
-                "
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
-                  <Icon className="h-3.5 w-3.5 text-slate-600 group-hover:text-blue-400 transition-colors" />
-                </div>
-                <p className="text-2xl font-bold text-white tracking-tight">{stat.value}</p>
-                {stat.positive && (
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <ArrowUpRight className="h-3 w-3 text-emerald-400" />
-                    <span className="text-xs text-emerald-400">+vs bulan lalu</span>
-                  </div>
-                )}
-              </motion.div>
-            )
-          })}
-        </div>
-      </motion.div>
-
     </div>
   )
 }

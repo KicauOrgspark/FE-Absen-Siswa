@@ -82,6 +82,7 @@ export const tokenAPI = {
 
 export const dashboardAPI = {
   getStats: () => apiCall('/dashboard'),
+  getChart: () => apiCall('/dashboard/trend'),
 }
 
 export const exportAPI = {
