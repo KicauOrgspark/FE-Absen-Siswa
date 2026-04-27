@@ -6,6 +6,7 @@ import { useLoginPage } from "./hooks/useLoginPage";
 import { LoginFormBody } from "../components/LoginFormBody";
 import { TokenModal } from "../components/TokenModal";
 import { cardVariants } from "../lib/shared";
+import { QRScannerModal } from "@/components/QRScannerModal";
 
 /* ── format helpers ── */
 function formatTime(date: Date) {
@@ -66,9 +67,8 @@ export default function LoginPage() {
     isLoggingIn,
     isSubmittingToken,
     loginForm,
-    tokenForm,
     onLoginSubmit,
-    onTokenSubmit,
+    onQRSubmit,
     handleRetry,
     handleCloseTokenModal,
     setShowPassword,
@@ -256,15 +256,10 @@ export default function LoginPage() {
       </div>
 
       {/* Token Modal */}
-      <TokenModal
+      <QRScannerModal
         open={showTokenModal}
         onClose={handleCloseTokenModal}
-        tokenForm={tokenForm}
-        onSubmit={tokenForm.handleSubmit(onTokenSubmit)}
-        tokenError={tokenError}
-        tokenAttempts={tokenAttempts}
-        tokenBlocked={tokenBlocked}
-        isSubmittingToken={isSubmittingToken}
+        onScanSuccess={onQRSubmit}
       />
     </>
   );
