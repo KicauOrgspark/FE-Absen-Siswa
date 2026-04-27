@@ -8,7 +8,7 @@ export const SCHOOL_LOCATION: Coordinates = {
   latitude: -6.467184782305172,   // ganti dengan koordinat sekolah
   longitude: 106.8646612685341,
 };
-export const ALLOWED_RADIUS_METERS = 500; // radius 100m
+export const ALLOWED_RADIUS_METERS = 100; // radius 100m
 
 /** Haversine formula — jarak dua titik GPS dalam meter */
 export function getDistanceMeters(a: Coordinates, b: Coordinates): number {

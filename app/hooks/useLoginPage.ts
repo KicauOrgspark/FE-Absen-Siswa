@@ -1,260 +1,419 @@
-import { useState, useRef, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useAuth } from "@/context/AuthContext";
-import { useGeolocation } from "@/app/hooks/useGeolocation";
-import { isInsideSchool, getDistanceMeters, SCHOOL_LOCATION } from "@/lib/geofence";
+import { useState, useRef, useEffect } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 
-/* ── schemas ── */
+import { useAuth } from "@/context/AuthContext"
+import { useGeolocation } from "@/app/hooks/useGeolocation"
+
+import {
+  isInsideSchool,
+  getDistanceMeters,
+  SCHOOL_LOCATION
+} from "@/lib/geofence"
+
+/* =========================
+ SCHEMA
+========================= */
+
 export const loginSchema = z.object({
-  nisn: z.string().min(1, "Nomor Induk harus diisi"),
-  password: z.string().min(1, "Password harus diisi"),
+  nisn: z.string().min(1, "Nomor Induk wajib"),
+  password: z.string().min(1, "Password wajib"),
   ingatSaya: z.boolean().optional(),
-});
+})
 
-export const tokenSchema = z.object({
-  token: z.string().min(1, "Token tidak boleh kosong"),
-});
+export type LoginFormData = z.infer<typeof loginSchema>
 
-export type LoginFormData = z.infer<typeof loginSchema>;
-export type TokenFormData = z.infer<typeof tokenSchema>;
-export type Screen = "login" | "error" | "success";
-export type ErrorType = "credentials" | "network" | "role" | "timeout" | "unknown";
+export type Screen =
+  | "login"
+  | "error"
+  | "success"
+
+export type ErrorType =
+  | "credentials"
+  | "network"
+  | "role"
+  | "timeout"
+  | "unknown"
 
 export interface AppError {
-  type: ErrorType;
-  message: string;
+  type: ErrorType
+  message: string
 }
 
 export interface SuccessTime {
-  date: Date;
-  receiptId: string;
+  date: Date
+  receiptId: string
 }
 
-/* ── constants ── */
-export const MAX_TOKEN_ATTEMPTS = 3;
-const LOGIN_TIMEOUT_MS = 15000;
-const STORAGE_KEY = "absen_remembered_nisn";
+/* =========================
+ CONSTANTS
+========================= */
 
-/* ── receipt ID generator ── */
+const STORAGE_KEY = "absen_remembered_nisn"
+const MAX_QR_ATTEMPTS = 3
+const LOGIN_TIMEOUT_MS = 15000
+
 function generateReceiptId() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+  return Array.from(
+    { length: 8 },
+    () => chars[Math.floor(Math.random() * chars.length)]
+  ).join("")
 }
 
-/* ── error parsers ── */
-export function parseLoginError(error: unknown): AppError {
-  if (!(error instanceof Error)) {
-    return { type: "unknown", message: "Terjadi kesalahan. Silakan coba lagi." };
-  }
-  const msg = error.message.toLowerCase();
-  if (msg.includes("fetch") || msg.includes("network") || msg.includes("failed to fetch")) {
-    return { type: "network", message: "Tidak dapat terhubung ke server. Periksa koneksi internet kamu." };
-  }
-  if (msg.includes("timeout")) {
-    return { type: "timeout", message: "Koneksi terlalu lambat. Silakan coba lagi." };
-  }
-  if (msg.includes("unauthorized") || msg.includes("invalid") || msg.includes("wrong") || msg.includes("salah")) {
-    return { type: "credentials", message: error.message };
-  }
-  return { type: "unknown", message: error.message || "Terjadi kesalahan. Silakan coba lagi." };
-}
+/* =========================
+ HOOK
+========================= */
 
-export function parseTokenError(error: unknown): string {
-  if (!(error instanceof Error)) return "Token tidak valid. Periksa kembali.";
-  const msg = error.message.toLowerCase();
-  if (msg.includes("expired") || msg.includes("kadaluarsa")) {
-    return "Token sudah kadaluarsa. Minta token baru ke guru.";
-  }
-  if (msg.includes("fetch") || msg.includes("network")) {
-    return "Tidak dapat terhubung ke server. Periksa koneksi internet kamu.";
-  }
-  return error.message || "Token tidak valid. Periksa kembali.";
-}
-
-/* ══════════════════════════════════════════
-   HOOK
-═══════════════════════════════════════════ */
 export function useLoginPage() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>("login");
-  const [showTokenModal, setShowTokenModal] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [successTime, setSuccessTime] = useState<SuccessTime | null>(null);
 
-  const [appError, setAppError] = useState<AppError | null>(null);
+  const [currentScreen, setCurrentScreen] =
+    useState<Screen>("login")
 
-  const [tokenError, setTokenError] = useState("");
-  const [tokenAttempts, setTokenAttempts] = useState(0);
-  const [tokenBlocked, setTokenBlocked] = useState(false);
+  const [showTokenModal, setShowTokenModal] =
+    useState(false)
 
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isSubmittingToken, setIsSubmittingToken] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false)
 
-  const loginTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [successTime, setSuccessTime] =
+    useState<SuccessTime | null>(null)
 
-  const { login, submitAbsen } = useAuth();
-  const { getLocation } = useGeolocation();
+  const [appError, setAppError] =
+    useState<AppError | null>(null)
+
+  const [tokenError, setTokenError] =
+    useState("")
+
+  const [tokenAttempts, setTokenAttempts] =
+    useState(0)
+
+  const [tokenBlocked, setTokenBlocked] =
+    useState(false)
+
+  const [isLoggingIn, setIsLoggingIn] =
+    useState(false)
+
+  const [isSubmittingToken, setIsSubmittingToken] =
+    useState(false)
+
+  const loginTimeoutRef =
+    useRef<NodeJS.Timeout | null>(null)
+
+  const { login, submitAbsen } = useAuth()
+  const { getLocation } = useGeolocation()
+
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { nisn: "", password: "", ingatSaya: false },
-  });
+    defaultValues: {
+      nisn: "",
+      password: "",
+      ingatSaya: false
+    }
+  })
 
-  const tokenForm = useForm<TokenFormData>({
-    resolver: zodResolver(tokenSchema),
-    defaultValues: { token: "" },
-  });
 
-  /* restore remembered NISN */
+  /* restore remembered nisn */
+
   useEffect(() => {
     try {
-      const savedNisn = localStorage.getItem(STORAGE_KEY);
-      if (savedNisn) {
-        loginForm.setValue("nisn", savedNisn);
-        loginForm.setValue("ingatSaya", true);
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  /* ── Login submit ── */
-  const onLoginSubmit = async (data: LoginFormData) => {
-    setIsLoggingIn(true);
-    setAppError(null);
+      const saved =
+        localStorage.getItem(STORAGE_KEY)
+
+      if (saved) {
+        loginForm.setValue("nisn", saved)
+        loginForm.setValue("ingatSaya", true)
+      }
+
+    } catch { }
+
+    return () => {
+      if (loginTimeoutRef.current) {
+        clearTimeout(loginTimeoutRef.current)
+      }
+    }
+
+  }, [loginForm])
+
+
+
+  /* =========================
+   LOGIN SUBMIT
+  ========================= */
+
+  const onLoginSubmit = async (
+    data: LoginFormData
+  ) => {
+
+    setIsLoggingIn(true)
+    setAppError(null)
 
     try {
+
       if (data.ingatSaya) {
-        localStorage.setItem(STORAGE_KEY, data.nisn);
+        localStorage.setItem(
+          STORAGE_KEY,
+          data.nisn
+        )
       } else {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(
+          STORAGE_KEY
+        )
       }
-    } catch {}
 
-    loginTimeoutRef.current = setTimeout(() => {
-      setIsLoggingIn(false);
-      setAppError({ type: "timeout", message: "Koneksi terlalu lambat. Silakan coba lagi." });
-      setCurrentScreen("error");
-    }, LOGIN_TIMEOUT_MS);
+    } catch { }
+
+
+    /* timeout fallback */
+
+    loginTimeoutRef.current =
+      setTimeout(() => {
+        setIsLoggingIn(false)
+
+        setAppError({
+          type: "timeout",
+          message: "Koneksi timeout"
+        })
+
+        setCurrentScreen("error")
+
+      }, LOGIN_TIMEOUT_MS)
+
+
 
     try {
-      const userData = await login({ nisn: data.nisn, password: data.password });
-      clearTimeout(loginTimeoutRef.current!);
+
+      const userData = await login({
+        nisn: data.nisn,
+        password: data.password
+      })
+
+
+      if (loginTimeoutRef.current) {
+        clearTimeout(loginTimeoutRef.current)
+      }
+
 
       if (userData?.role === "siswa") {
-        setShowTokenModal(true);
-        setTokenError("");
-        setTokenAttempts(0);
-        setTokenBlocked(false);
-        tokenForm.reset();
+
+        setShowTokenModal(true)
+
+        setTokenError("")
+        setTokenAttempts(0)
+        setTokenBlocked(false)
+
       } else {
+
         setAppError({
           type: "role",
-          message: "Akun ini tidak memiliki akses siswa. Hubungi administrator.",
-        });
-        setCurrentScreen("error");
-      }
-    } catch (error) {
-      clearTimeout(loginTimeoutRef.current!);
-      setAppError(parseLoginError(error));
-      setCurrentScreen("error");
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
+          message: "Akses hanya untuk siswa"
+        })
 
-  /* ── Token submit ── */
-  const onTokenSubmit = async (data: TokenFormData) => {
-    if (tokenBlocked) return;
-    setIsSubmittingToken(true);
-    setTokenError("");
+        setCurrentScreen("error")
+      }
+
+
+    } catch (err: any) {
+
+      if (loginTimeoutRef.current) {
+        clearTimeout(loginTimeoutRef.current)
+      }
+
+      let type: ErrorType = "unknown"
+
+      const msg = (err?.message || "")
+        .toLowerCase()
+
+      if (
+        msg.includes("password") ||
+        msg.includes("kredensial")
+      ) {
+        type = "credentials"
+      }
+      else if (
+        msg.includes("network") ||
+        msg.includes("koneksi")
+      ) {
+        type = "network"
+      }
+      else if (
+        msg.includes("akses") ||
+        msg.includes("role")
+      ) {
+        type = "role"
+      }
+
+      setAppError({
+        type,
+        message:
+          err?.message ||
+          "Terjadi kesalahan"
+      })
+
+      setCurrentScreen("error")
+
+    }
+    finally {
+      setIsLoggingIn(false)
+    }
+
+  }
+
+
+
+  /* =========================
+   QR SUBMIT
+  ========================= */
+
+  const onQRSubmit = async (
+    tokenCode: string
+  ) => {
+
+    if (tokenBlocked) return
+
+    setIsSubmittingToken(true)
+    setTokenError("")
 
     try {
-      try {
-        const coords = await getLocation();
 
-        // 🐛 DEBUG — hapus setelah masalah solved
-        console.log("📍 GPS kamu:", coords.latitude, coords.longitude);
-        console.log("🏫 Koordinat sekolah:", SCHOOL_LOCATION.latitude, SCHOOL_LOCATION.longitude);
-        console.log("📏 Jarak:", getDistanceMeters(
-          { latitude: coords.latitude, longitude: coords.longitude },
+      const coords =
+        await getLocation()
+
+
+      console.log(
+        "Jarak:",
+        getDistanceMeters(
+          {
+            latitude: coords.latitude,
+            longitude: coords.longitude
+          },
           SCHOOL_LOCATION
-        ), "meter");
+        )
+      )
 
-        if (!isInsideSchool({ latitude: coords.latitude, longitude: coords.longitude })) {
-          setTokenError("Kamu berada di luar area sekolah. Absen hanya bisa dilakukan di lingkungan sekolah.");
-          return;
-        }
-      } catch (gpsError) {
+
+      if (
+        !isInsideSchool({
+          latitude: coords.latitude,
+          longitude: coords.longitude
+        })
+      ) {
         setTokenError(
-          gpsError instanceof Error ? gpsError.message : "Gagal mendapatkan lokasi GPS."
-        );
-        return;
+          "Di luar area sekolah."
+        )
+        return
       }
 
-      await submitAbsen(data.token);
 
-      // ✅ Simpan waktu & receipt ID saat absen berhasil
+      await submitAbsen(tokenCode)
+
+
       setSuccessTime({
         date: new Date(),
-        receiptId: generateReceiptId(),
-      });
+        receiptId: generateReceiptId()
+      })
 
-      setShowTokenModal(false);
-      setCurrentScreen("success");
-      setTimeout(() => { window.location.href = "/"; }, 3000);
 
-    } catch (error) {
-      const newAttempts = tokenAttempts + 1;
-      setTokenAttempts(newAttempts);
-      if (newAttempts >= MAX_TOKEN_ATTEMPTS) {
-        setTokenBlocked(true);
-        setTokenError("Terlalu banyak percobaan salah. Tutup dan minta token baru ke guru.");
+      setShowTokenModal(false)
+
+      setCurrentScreen("success")
+
+
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 3000)
+
+
+    } catch (error: any) {
+
+      const newAttempts =
+        tokenAttempts + 1
+
+      setTokenAttempts(newAttempts)
+
+
+      if (
+        newAttempts >= MAX_QR_ATTEMPTS
+      ) {
+
+        setTokenBlocked(true)
+
+        setTokenError(
+          "Terlalu banyak scan gagal."
+        )
+
       } else {
-        const remaining = MAX_TOKEN_ATTEMPTS - newAttempts;
-        setTokenError(`${parseTokenError(error)} (${remaining} percobaan tersisa)`);
+
+        setTokenError(
+          (error?.message || "QR gagal") +
+          ` (${MAX_QR_ATTEMPTS - newAttempts} tersisa)`
+        )
+
       }
-    } finally {
-      setIsSubmittingToken(false);
+
     }
-  };
+    finally {
+      setIsSubmittingToken(false)
+    }
 
-  /* ── Retry ── */
+  }
+
+
+
+  /* =========================
+   HELPERS
+  ========================= */
+
   const handleRetry = () => {
-    setAppError(null);
-    setCurrentScreen("login");
-    loginForm.reset();
-  };
+    setCurrentScreen("login")
+    setAppError(null)
+  }
 
-  /* ── Close token modal ── */
+
   const handleCloseTokenModal = () => {
-    setShowTokenModal(false);
-    setTokenError("");
-    setTokenAttempts(0);
-    setTokenBlocked(false);
-    tokenForm.reset();
-  };
+    setShowTokenModal(false)
+    setTokenError("")
+    setTokenAttempts(0)
+    setTokenBlocked(false)
+  }
+
+
+
+  /* =========================
+   RETURN
+  ========================= */
 
   return {
-    // state
+
     currentScreen,
     showTokenModal,
     showPassword,
+
     appError,
+
     tokenError,
     tokenAttempts,
     tokenBlocked,
+
     isLoggingIn,
     isSubmittingToken,
+
     successTime,
-    // forms
+
     loginForm,
-    tokenForm,
-    // handlers
+
     onLoginSubmit,
-    onTokenSubmit,
+    onQRSubmit,
+
     handleRetry,
     handleCloseTokenModal,
-    setShowPassword,
-  };
+
+    setShowPassword
+
+  }
+
 }
