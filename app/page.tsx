@@ -1,10 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Fingerprint, CheckCircle2, Clock, Calendar, MapPin, Hash } from "lucide-react";
+import { ShieldCheck, Fingerprint, CheckCircle2, XCircle, Clock, Calendar, MapPin, Hash, AlertCircle } from "lucide-react";
 import { useLoginPage } from "./hooks/useLoginPage";
 import { LoginFormBody } from "../components/LoginFormBody";
-import { TokenModal } from "../components/TokenModal";
 import { cardVariants } from "../lib/shared";
 import { QRScannerModal } from "@/components/QRScannerModal";
 
@@ -33,11 +32,13 @@ function ReceiptRow({
   label,
   value,
   mono = false,
+  valueClassName,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   mono?: boolean;
+  valueClassName?: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5 border-b border-dashed border-slate-700/50 last:border-0">
@@ -45,7 +46,11 @@ function ReceiptRow({
         <Icon className="h-3 w-3" />
         {label}
       </span>
-      <span className={`text-xs text-slate-200 text-right ${mono ? "font-mono tracking-wider" : "font-medium"}`}>
+      <span
+        className={`text-xs text-right ${mono ? "font-mono tracking-wider" : "font-medium"} ${
+          valueClassName ?? "text-slate-200"
+        }`}
+      >
         {value}
       </span>
     </div>
@@ -61,11 +66,8 @@ export default function LoginPage() {
     showTokenModal,
     showPassword,
     appError,
-    tokenError,
-    tokenAttempts,
-    tokenBlocked,
+    scanError,
     isLoggingIn,
-    isSubmittingToken,
     loginForm,
     onLoginSubmit,
     onQRSubmit,
@@ -196,22 +198,9 @@ export default function LoginPage() {
 
                   {/* Detail rows */}
                   <div className="bg-slate-800/40 rounded-xl px-4 py-1 border border-slate-700/40">
-                    <ReceiptRow
-                      icon={Clock}
-                      label="Waktu"
-                      value={formatTime(successTime.date)}
-                      mono
-                    />
-                    <ReceiptRow
-                      icon={Calendar}
-                      label="Tanggal"
-                      value={formatDate(successTime.date)}
-                    />
-                    <ReceiptRow
-                      icon={MapPin}
-                      label="Lokasi"
-                      value="Area Sekolah ✓"
-                    />
+                    <ReceiptRow icon={Clock} label="Waktu" value={formatTime(successTime.date)} mono />
+                    <ReceiptRow icon={Calendar} label="Tanggal" value={formatDate(successTime.date)} />
+                    <ReceiptRow icon={MapPin} label="Lokasi" value="Area Sekolah ✓" />
                   </div>
 
                   {/* Status badge */}
@@ -243,6 +232,87 @@ export default function LoginPage() {
               </motion.div>
             )}
 
+            {/* ── SCAN ERROR card — receipt style ── */}
+            {currentScreen === "scan_error" && successTime && (
+              <motion.div
+                key="scan-error-card"
+                variants={cardVariants} initial="hidden" animate="visible" exit="exit"
+                className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
+              >
+                {/* Header */}
+                <div className="px-6 pt-8 pb-5 text-center border-b border-slate-800/60">
+                  <motion.div
+                    initial={{ scale: 0, rotate: 20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+                    className="w-16 h-16 rounded-2xl bg-red-950/60 border-2 border-red-500/40 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-900/30"
+                  >
+                    <XCircle className="h-8 w-8 text-red-400" />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <h2 className="text-2xl font-black text-white tracking-tight">Gagal! 😔</h2>
+                    <p className="text-sm text-red-400/80 font-medium mt-1">Absensi tidak berhasil dicatat</p>
+                  </motion.div>
+                </div>
+
+                {/* Receipt body */}
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="px-6 py-4"
+                >
+                  {/* Receipt ID */}
+                  <div className="flex items-center justify-center gap-1.5 mb-3">
+                    <Hash className="h-3 w-3 text-slate-600" />
+                    <span className="text-xs text-slate-600 font-mono tracking-widest">
+                      {successTime.receiptId}
+                    </span>
+                  </div>
+
+                  {/* Detail rows */}
+                  <div className="bg-slate-800/40 rounded-xl px-4 py-1 border border-slate-700/40">
+                    <ReceiptRow icon={Clock} label="Waktu" value={formatTime(successTime.date)} mono />
+                    <ReceiptRow icon={Calendar} label="Tanggal" value={formatDate(successTime.date)} />
+                    <ReceiptRow
+                      icon={AlertCircle}
+                      label="Alasan"
+                      value={scanError ?? "QR tidak valid atau sudah kadaluarsa"}
+                      valueClassName="text-red-400"
+                    />
+                  </div>
+
+                  {/* Status badge */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="mt-4 flex items-center justify-center"
+                  >
+                    <div className="flex items-center gap-2 bg-red-950/60 border border-red-700/40 rounded-full px-4 py-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                      <span className="text-xs text-red-400 font-semibold tracking-widest">TIDAK HADIR</span>
+                    </div>
+                  </motion.div>
+                </motion.div>
+
+                {/* Progress bar */}
+                <div className="px-6 pb-6 pt-1">
+                  <p className="text-xs text-slate-600 text-center mb-2">Mengembalikan ke halaman login...</p>
+                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-red-500 rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 3, ease: "linear" }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
           </AnimatePresence>
 
           {/* Bottom note */}
@@ -255,7 +325,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Token Modal */}
+      {/* QR Scanner Modal */}
       <QRScannerModal
         open={showTokenModal}
         onClose={handleCloseTokenModal}
