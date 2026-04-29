@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       let userData: User | null = null;
 
-      if (loginData.role === 'guru' || loginData.role === 'admin') {
+      if (loginData.role === 'guru' || loginData.role === 'admin' || loginData.role === 'superadmin') {
         userData = {
            id: 0,
            nisn: credentials.nisn,
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (userData) {
         setUser(userData);
-        if (userData.role === 'guru' || userData.role === 'admin') {
+        if (userData.role === 'guru' || userData.role === 'admin' || userData.role === 'superadmin') {
           router.push('/admin');
         }
         
