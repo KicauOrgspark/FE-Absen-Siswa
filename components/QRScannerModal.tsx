@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useId } from "react"
 import { Html5Qrcode } from "html5-qrcode"
+import { motion, AnimatePresence } from "framer-motion"
+import { AlertCircle } from "lucide-react"
 
 import {
     Dialog,
@@ -13,12 +15,14 @@ interface Props {
     open: boolean
     onClose: () => void
     onScanSuccess: (token: string) => void
+    expiredError?: string | null
 }
 
 export function QRScannerModal({
     open,
     onClose,
-    onScanSuccess
+    onScanSuccess,
+    expiredError
 }: Props) {
 
     const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -100,6 +104,24 @@ export function QRScannerModal({
                 <DialogTitle className="text-lg font-bold">
                     Scan QR Absensi
                 </DialogTitle>
+
+                {/* ── Expired Token Alert ── */}
+                <AnimatePresence>
+                    {expiredError && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="flex items-start gap-2.5 rounded-xl p-3 border bg-amber-950/60 border-amber-700/50">
+                                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                                <p className="text-sm text-amber-300">{expiredError}</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <div
                     id={readerId}

@@ -5,6 +5,7 @@ export interface Token {
   is_active: boolean
   validUntil: string
   createdAt: string
+  category: 'hadir' | 'telat'
   created_by: {
     id: number
     full_name: string
@@ -13,7 +14,7 @@ export interface Token {
 
 export interface TokenRequest {
   duration: number
-  late_after: number
+  category: 'hadir' | 'telat'
 }
 
 export interface TokenResponse {
@@ -22,14 +23,39 @@ export interface TokenResponse {
   message?: string
 }
 
-// Attendance types
+export type AttendanceStatus = 'hadir' | 'telat' | 'alfa' | 'sakit' | 'izin' | 'belum_absen'
+
 export interface AttendanceRecord {
   id: string
   userId: string
   userName: string
   tokenId: string
   timestamp: string
-  status: 'present' | 'absent'
+  status: AttendanceStatus
+}
+
+export interface MonitoringSummary {
+  total: number
+  hadir: number
+  telat: number
+  alfa: number
+  sakit: number
+  izin: number
+  belum_absen: number
+}
+
+export interface StudentAttendance {
+  id: number
+  nisn: string
+  name: string
+  class_group: string
+  status: AttendanceStatus
+  timestamp?: string
+}
+
+export interface MonitoringResponse {
+  summary: MonitoringSummary
+  data: StudentAttendance[]
 }
 
 export interface AttendanceStats {

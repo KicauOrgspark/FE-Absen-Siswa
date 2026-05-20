@@ -8,7 +8,7 @@ interface StatsCardProps {
   label: string
   value: string | number
   trend?: number
-  color?: 'blue' | 'green' | 'purple' | 'orange'
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'slate'
   index?: number
 }
 
@@ -32,6 +32,16 @@ const colorConfig = {
     icon: 'bg-orange-500/20 border-orange-500/30 text-orange-400',
     glow: 'from-orange-600/5',
     accent: 'bg-orange-500',
+  },
+  red: {
+    icon: 'bg-red-500/20 border-red-500/30 text-red-400',
+    glow: 'from-red-600/5',
+    accent: 'bg-red-500',
+  },
+  slate: {
+    icon: 'bg-slate-500/20 border-slate-500/30 text-slate-400',
+    glow: 'from-slate-600/5',
+    accent: 'bg-slate-500',
   },
 }
 

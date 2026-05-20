@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { tokenAPI, dashboardAPI } from './api-client'
+import { tokenAPI, dashboardAPI, monitoringAPI } from './api-client'
 import {
   Token,
   AttendanceStats,
   ChartDataPoint,
   TokenRequest,
+  MonitoringResponse,
 } from './types'
 
 /* =========================================================
@@ -51,21 +52,19 @@ export function useGenerateToken() {
   const [error, setError] = useState<string | null>(null)
   const [generatedToken, setGeneratedToken] = useState<Token | null>(null)
 
-  const generate = async (
-    payload: TokenRequest
+  // Shared wrapper to avoid duplicating try/catch/loading in every method
+  const _callAndSet = async (
+    apiFn: () => Promise<any>
   ): Promise<Token | null> => {
     setLoading(true)
     setError(null)
-
     try {
-      const result = await tokenAPI.create(payload)
-
+      const result = await apiFn()
       if ('data' in result && result.data) {
         const token = result.data as Token
         setGeneratedToken(token)
         return token
       }
-
       setError(result.message || 'Failed to generate token')
       return null
     } catch {
@@ -76,12 +75,18 @@ export function useGenerateToken() {
     }
   }
 
+  const generate = (payload: TokenRequest) =>
+    _callAndSet(() => tokenAPI.create(payload))
+
+  const generateHadir = () => _callAndSet(tokenAPI.createHadir)
+  const generateTelat = () => _callAndSet(tokenAPI.createTelat)
+
   const reset = () => {
     setGeneratedToken(null)
     setError(null)
   }
 
-  return { generate, loading, error, generatedToken, reset }
+  return { generate, generateHadir, generateTelat, loading, error, generatedToken, reset }
 }
 
 /* =========================================================
@@ -174,25 +179,25 @@ export function usePaginatedTokens() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const result = await tokenAPI.getPaginated(page)
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const result = await tokenAPI.getPaginated(page)
 
-        if ('data' in result && result.data) {
-          setTokens(result.data.tokens)
-          setTotalPages(result.data.totalPages)
-        } else {
-          setError(result.message || 'Failed to fetch tokens')
-        }
-      } catch {
-        setError('Failed to fetch tokens')
-      } finally {
-        setLoading(false)
+      if ('data' in result && result.data) {
+        setTokens(result.data.tokens)
+        setTotalPages(result.data.totalPages)
+      } else {
+        setError(result.message || 'Failed to fetch tokens')
       }
+    } catch {
+      setError('Failed to fetch tokens')
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchData()
   }, [page])
 
@@ -203,6 +208,7 @@ export function usePaginatedTokens() {
     page,
     setPage,
     totalPages,
+    refetch: fetchData,
   }
 }
 
@@ -296,4 +302,47 @@ export function useExportData() {
   }
 
   return { exportToExcel, loading, error }
+}
+
+/* =========================================================
+   MONITORING
+========================================================= */
+
+export function useMonitoringData(filters: { class_group?: string; status?: string }) {
+  const [data, setData] = useState<MonitoringResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const result = await monitoringAPI.getStudents(filters)
+
+      if ('data' in result) {
+        setData(result.data as MonitoringResponse)
+        setError(null)
+      } else {
+        setError(result.message || 'Failed to fetch monitoring data')
+      }
+    } catch {
+      setError('Something went wrong fetching monitoring data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [filters.class_group, filters.status])
+
+  const updateStatus = async (nisn: string, status: string) => {
+    const result = await monitoringAPI.updateStatus({ nisn, status })
+    if ('data' in result || result.success !== false) { // Handle varied success formats
+      await fetchData() // refresh
+      return true
+    }
+    return false
+  }
+
+  return { data, loading, error, refetch: fetchData, updateStatus }
 }

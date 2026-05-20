@@ -2,17 +2,18 @@
 
 export type {
   LoginFormData,
-  TokenFormData,
   Screen,
   ErrorType,
   AppError,
 } from "../app/hooks/useLoginPage";
 
-export {
-  MAX_TOKEN_ATTEMPTS,
-  parseLoginError,
-  parseTokenError,
-} from "../app/hooks/useLoginPage";
+// TokenFormData used by TokenModal
+export interface TokenFormData {
+  token: string
+}
+
+// Constant for token attempt limits (used by TokenModal)
+export const MAX_TOKEN_ATTEMPTS = 3;
 
 /* ── animation variants ── */
 export const cardVariants = {

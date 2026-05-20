@@ -62,20 +62,31 @@ export async function apiCall<T>(
 
 export const tokenAPI = {
 
+  getAll: () =>
+    apiCall('/token/qr_code/active'),
+
+  getPaginated: (page: number) =>
+    apiCall(`/token?page=${page}`),
+
   create: (payload: {
     duration: number
-    late_after: number
+    category: string
   }) =>
     apiCall('/token/create', {
       method: 'POST',
       body: JSON.stringify({
         duration: payload.duration,
-        late_after: payload.late_after,
+        category: payload.category,
       }),
     }),
 
-  createDefault: () =>
-    apiCall('/token/create/default', {
+  createHadir: () =>
+    apiCall('/token/create/hadir', {
+      method: 'POST',
+    }),
+
+  createTelat: () =>
+    apiCall('/token/create/telat', {
       method: 'POST',
     }),
 }
@@ -97,4 +108,19 @@ export const exportAPI = {
 
 export const logsAPI = {
   getHistory: () => apiCall('/logs/'),
+}
+
+export const monitoringAPI = {
+  getStudents: (params?: { class_group?: string; status?: string }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.class_group && params.class_group !== 'all') searchParams.append('class_group', params.class_group)
+    if (params?.status && params.status !== 'all') searchParams.append('status', params.status)
+    return apiCall(`/attendance/students?${searchParams.toString()}`)
+  },
+  
+  updateStatus: (payload: { nisn: string; status: string }) =>
+    apiCall('/attendance/status', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
 }

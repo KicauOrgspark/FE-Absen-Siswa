@@ -56,6 +56,9 @@ const MAX_QR_ATTEMPTS = 3
 const LOGIN_TIMEOUT_MS = 15000
 const SCAN_ERROR_REDIRECT_MS = 3000
 
+// Token expired error message from backend
+const TOKEN_EXPIRED_MSG = "Token QR sudah kedaluwarsa, silakan minta QR yang baru"
+
 function generateReceiptId() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   return Array.from(
@@ -81,6 +84,9 @@ export function useLoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const [isSubmittingToken, setIsSubmittingToken] = useState(false)
+  const [attendanceStatus, setAttendanceStatus] = useState<string>('hadir')
+  // Error yang ditampilkan inline di modal QR (untuk expired token dll)
+  const [tokenExpiredError, setTokenExpiredError] = useState<string | null>(null)
 
   const loginTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const scanErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -161,9 +167,17 @@ export function useLoginPage() {
       if (userData?.role === "siswa") {
         setShowTokenModal(true)
         setTokenError("")
+        setTokenExpiredError(null)
         attemptsRef.current = 0
         setTokenAttempts(0)
         setTokenBlocked(false)
+      } else if (
+        userData?.role === "guru" ||
+        userData?.role === "admin" ||
+        userData?.role === "superadmin"
+      ) {
+        // Admin/guru/superadmin — AuthContext sudah handle redirect ke /admin
+        // Tidak perlu action apapun di sini
       } else {
         setAppError({ type: "role", message: "Akses hanya untuk siswa" })
         setCurrentScreen("error")
@@ -201,6 +215,7 @@ export function useLoginPage() {
 
     setIsSubmittingToken(true)
     setTokenError("")
+    setTokenExpiredError(null)
 
     try {
       const coords = await getLocation()
@@ -218,8 +233,9 @@ export function useLoginPage() {
         return
       }
 
-      await submitAbsen(tokenCode)
+      const result = await submitAbsen(tokenCode)
 
+      setAttendanceStatus(result.status || 'hadir')
       setSuccessTime({ date: new Date(), receiptId: generateReceiptId() })
       setShowTokenModal(false)
       setCurrentScreen("success")
@@ -227,11 +243,21 @@ export function useLoginPage() {
       setTimeout(() => { window.location.href = "/" }, 3000)
 
     } catch (error: any) {
+      const errorMessage = error?.message || "QR gagal"
+
+      // ── Jika error adalah token expired, tampilkan inline tanpa redirect ──
+      if (errorMessage.includes("kedaluwarsa") || errorMessage.includes(TOKEN_EXPIRED_MSG)) {
+        setTokenExpiredError(errorMessage)
+        // TIDAK redirect, biarkan siswa tetap di halaman untuk input token baru
+        return
+      }
+
+      // ── Error lain: hitung attempts seperti biasa ──
       attemptsRef.current += 1
       const newAttempts = attemptsRef.current
       setTokenAttempts(newAttempts)
 
-      let message = error?.message || "QR gagal"
+      let message = errorMessage
 
       if (newAttempts >= MAX_QR_ATTEMPTS) {
         setTokenBlocked(true)
@@ -262,6 +288,7 @@ export function useLoginPage() {
   const handleCloseTokenModal = () => {
     setShowTokenModal(false)
     setTokenError("")
+    setTokenExpiredError(null)
     setTokenAttempts(0)
     setTokenBlocked(false)
     attemptsRef.current = 0
@@ -284,6 +311,8 @@ export function useLoginPage() {
     isSubmittingToken,
     successTime,
     scanError,
+    tokenExpiredError,
+    attendanceStatus,
     loginForm,
     onLoginSubmit,
     onQRSubmit,

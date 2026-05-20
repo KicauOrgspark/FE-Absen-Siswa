@@ -15,29 +15,8 @@ import { StatsCard } from '@/components/stats-card'
 import { AttendanceChart } from '@/components/attendance-chart'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useAttendanceStats, useAttendanceChart } from '@/lib/api-hooks'
+import { containerVariants, itemVariants, cardClass } from '@/lib/constants'
 
-/* ── animation variants ── */
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.15 },
-  },
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1, y: 0,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-  },
-}
-
-const cardClass = `
-  bg-slate-900/70 backdrop-blur-xl
-  border border-slate-700/50
-  rounded-2xl shadow-xl shadow-black/30
-`
 
 export default function DashboardPage() {
   const { stats } = useAttendanceStats()
@@ -82,7 +61,7 @@ export default function DashboardPage() {
               </span> 
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight mb-1">
-              Selamat Datang, Admin! 👋
+              Halo, Admin! 👋
             </h1>
             <p className="text-slate-400 text-sm flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />
@@ -101,19 +80,19 @@ export default function DashboardPage() {
       >
         {[
           {
-            icon: KeyRound, label: 'Total Tokens',
+            icon: KeyRound, label: 'Total Sesi QR',
             value: stats?.totalTokens || 0, color: 'blue', index: 0,
           },
           {
-            icon: CheckCircle, label: 'Hadir Hari Ini',
+            icon: CheckCircle, label: 'Siswa Hadir',
             value: stats?.todayAttendance || 0, trend: 12, color: 'green', index: 1,
           },
           {
-            icon: Zap, label: 'Token Aktif',
+            icon: Zap, label: 'QR Sedang Aktif',
             value: stats?.activeTokens || 0, color: 'orange', index: 2,
           },
           {
-            icon: Users, label: 'Total Kehadiran',
+            icon: Users, label: 'Total Pemindaian',
             value: stats?.totalAttendance || 0, color: 'purple', index: 3,
           },
         ].map((card) => (
@@ -131,8 +110,8 @@ export default function DashboardPage() {
         className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
       >
         {[
-          { title: 'Tren Kehadiran (7 Hari)', type: 'line' as const },
-          { title: 'Distribusi Kehadiran Harian', type: 'bar' as const },
+          { title: 'Tren Kehadiran (7 Hari Terakhir)', type: 'line' as const },
+          { title: 'Statistik Kehadiran Harian', type: 'bar' as const },
         ].map((chart) => (
           <motion.div key={chart.title} variants={itemVariants}>
             {chartLoading ? (
