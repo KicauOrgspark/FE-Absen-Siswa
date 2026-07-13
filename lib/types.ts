@@ -3,8 +3,11 @@ export interface Token {
   id: number
   token_code: string
   is_active: boolean
-  validUntil: string
-  createdAt: string
+  validUntil?: string
+  valid_until?: string
+  expired_at?: string
+  createdAt?: string
+  created_at?: string
   category: 'hadir' | 'telat'
   created_by: {
     id: number

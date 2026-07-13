@@ -11,24 +11,24 @@ import { QRCodeSVG } from 'qrcode.react'
 export default function PengaturanPage() {
   const { tokens, loading: tokensLoading, refetch: refetchTokens } = useTokens()
   const { generate, loading: generateLoading, generatedToken, reset } = useGenerateToken()
-  
+
   const [customDuration, setCustomDuration] = useState('')
   const [selectedDuration, setSelectedDuration] = useState(30)
   const [qrModalOpen, setQrModalOpen] = useState(false)
-  
+
 
   const handleGenerate = async () => {
     const duration = customDuration ? parseInt(customDuration) : selectedDuration
     if (isNaN(duration) || duration <= 0) return
-    
+
     await generate({
       duration,
       category: 'hadir',
     })
-    
+
     refetchTokens()
   }
-  
+
   const activeToken = generatedToken || tokens.find(t => t.is_active)
 
   return (
@@ -48,7 +48,7 @@ export default function PengaturanPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          
+
 
           {/* Generate QR Token */}
           <motion.section
@@ -64,7 +64,7 @@ export default function PengaturanPage() {
                 <h3 className="font-serif text-xl font-bold text-foreground">Generate QR Token</h3>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center font-sans">
               <div className="flex flex-col gap-4">
                 <p className="text-sm text-muted-foreground mb-1">Pilih durasi untuk token absensi kelas baru.</p>
@@ -73,16 +73,15 @@ export default function PengaturanPage() {
                     <Button
                       key={dur}
                       variant={selectedDuration === dur && !customDuration ? 'default' : 'outline'}
-                      className={`rounded-full font-semibold text-xs uppercase tracking-[0.05em] ${
-                        selectedDuration === dur && !customDuration ? 'bg-primary/10 text-primary border-primary hover:bg-primary/20' : ''
-                      }`}
+                      className={`rounded-full font-semibold text-xs uppercase tracking-[0.05em] ${selectedDuration === dur && !customDuration ? 'bg-primary/10 text-primary border-primary hover:bg-primary/20' : ''
+                        }`}
                       onClick={() => { setSelectedDuration(dur); setCustomDuration(''); }}
                     >
                       {dur} Menit
                     </Button>
                   ))}
                 </div>
-                
+
                 <div className="flex flex-col gap-2 mt-3">
                   <label className="text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Atau Durasi Kustom (Menit)</label>
                   <div className="flex gap-2">
@@ -103,7 +102,7 @@ export default function PengaturanPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-background rounded-xl p-6 border border-border flex flex-col items-center justify-center min-h-[160px] relative overflow-hidden">
                 <span className="material-symbols-outlined text-muted opacity-30 text-[64px]">qr_code</span>
                 <p className="text-sm text-muted-foreground text-center mt-3 font-medium">
@@ -146,11 +145,11 @@ export default function PengaturanPage() {
                     <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Tidak ada riwayat token.</td></tr>
                   ) : (
                     tokens.slice(0, 5).map((token) => {
-                      const createdAtStr = token.createdAt || (token as any).created_at;
-                      const validUntilStr = token.validUntil || (token as any).valid_until || (token as any).expired_at;
+                      const createdAtStr = token.createdAt || token.created_at;
+                      const validUntilStr = token.validUntil || token.valid_until || token.expired_at;
                       const created = createdAtStr ? new Date(createdAtStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
                       const validUntil = validUntilStr ? new Date(validUntilStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
-                      
+
                       return (
                         <tr key={token.id} className={`transition-colors ${token.is_active ? 'bg-[var(--status-hadir)]/5' : 'opacity-60'}`}>
                           <td className="py-3 px-4 font-mono font-semibold text-foreground">{token.token_code}</td>
@@ -231,8 +230,8 @@ export default function PengaturanPage() {
                   <div className="flex flex-col gap-1 text-right">
                     <span className="text-[10px] font-bold uppercase tracking-[0.05em] text-muted-foreground">Berakhir</span>
                     <span className="font-mono font-bold text-primary">
-                      {activeToken.validUntil || (activeToken as any).valid_until || (activeToken as any).expired_at
-                        ? new Date(activeToken.validUntil || (activeToken as any).valid_until || (activeToken as any).expired_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                      {activeToken.validUntil || activeToken.valid_until || activeToken.expired_at
+                        ? new Date((activeToken.validUntil || activeToken.valid_until || activeToken.expired_at)!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                         : '-'} WIB
                     </span>
                   </div>
@@ -264,20 +263,20 @@ export default function PengaturanPage() {
               >
                 <span className="material-symbols-outlined text-[24px]">close</span>
               </button>
-              
+
               <div className="text-center mb-6 mt-2">
                 <h3 className="font-serif text-2xl font-bold text-foreground">QR Token Presensi</h3>
                 <p className="font-mono text-sm text-muted-foreground mt-2">
-                  {activeToken.token_code} • Berakhir {activeToken.validUntil || (activeToken as any).valid_until || (activeToken as any).expired_at
-                    ? new Date(activeToken.validUntil || (activeToken as any).valid_until || (activeToken as any).expired_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                  {activeToken.token_code} • Berakhir {activeToken.validUntil || activeToken.valid_until || activeToken.expired_at
+                    ? new Date(activeToken.validUntil || activeToken.valid_until || activeToken.expired_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     : '-'} WIB
                 </p>
               </div>
-              
+
               <div className="bg-white p-6 rounded-xl border-4 border-primary shadow-inner mb-6">
                 <QRCodeSVG value={activeToken.token_code} size={240} level="H" />
               </div>
-              
+
               <div className="px-6 py-2 bg-[var(--status-hadir-bg)] text-[var(--status-hadir-text)] rounded-full text-xs font-semibold uppercase tracking-[0.05em] border border-secondary-container font-sans">
                 FASE: {activeToken.category.toUpperCase()}
               </div>

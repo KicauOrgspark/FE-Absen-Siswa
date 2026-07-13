@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
+<<<<<<< HEAD
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,97 @@ import { useAttendanceStats, useMonitoringData } from '@/lib/api-hooks'
 /* ── helpers ── */
 function formatDate() {
   return new Date().toLocaleDateString('id-ID', {
+=======
+type TrendChartItem = {
+  date: string
+  Hadir?: number
+  Telat?: number
+  Sakit?: number
+  Alpa?: number
+  Belum?: number
+  [key: string]: unknown
+}
+
+export default function DashboardPage() {
+  const { data: chartData, loading: chartLoading } = useAttendanceChart()
+  const { data: monitoringData, loading: monitoringLoading, updateStatus, updateMultipleStatuses } = useMonitoringData({
+    class_group: 'all',
+    status: 'all'
+  })
+
+  const isDataLoading = chartLoading || monitoringLoading
+
+  // Compute live statistics from monitoring data
+  const rawStudents = (monitoringData?.data || []) as StudentAttendance[]
+  const totalStudents = rawStudents.length
+
+  const countHadir = rawStudents.filter((s) => s.status === 'hadir').length
+  const countTelat = rawStudents.filter((s) => s.status === 'telat').length
+  const countSakit = rawStudents.filter((s) => s.status === 'sakit').length
+  const countAlfa = rawStudents.filter((s) => s.status === 'alfa').length
+  const countBelumAbsen = rawStudents.filter((s) => s.status === 'belum_absen').length
+
+  const totalPresent = countHadir + countTelat
+  const attendanceRate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0
+
+  const liveStatusSummary = {
+    Hadir: countHadir,
+    Telat: countTelat,
+    Sakit: countSakit,
+    Alpa: countAlfa,
+    Belum: countBelumAbsen,
+  }
+
+  // Build chart data from real attendance status counts when available.
+  const trend7DaysData = (() => {
+    const emptySeries = {
+      Hadir: 0,
+      Telat: 0,
+      Sakit: 0,
+      Alpa: 0,
+      Belum: 0,
+    }
+
+    if (chartData && chartData.length > 0) {
+      const normalized = chartData.map((item: TrendChartItem, index: number) => {
+        const hasStatusBreakdown = ['Hadir', 'Telat', 'Sakit', 'Alpa', 'Belum'].some(
+          (key) => typeof item[key] === 'number'
+        )
+
+        if (hasStatusBreakdown) {
+          return {
+            date: new Date(item.date).toLocaleDateString('id-ID', { weekday: 'short' }),
+            Hadir: Number(item.Hadir ?? 0),
+            Telat: Number(item.Telat ?? 0),
+            Sakit: Number(item.Sakit ?? 0),
+            Alpa: Number(item.Alpa ?? 0),
+            Belum: Number(item.Belum ?? 0),
+          }
+        }
+
+        const isLastItem = index === chartData.length - 1
+        return {
+          date: new Date(item.date).toLocaleDateString('id-ID', { weekday: 'short' }),
+          ...(isLastItem ? liveStatusSummary : emptySeries),
+        }
+      })
+
+      if (normalized.length > 0) {
+        return normalized
+      }
+    }
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const isLast = i === 6
+      return {
+        date: isLast ? 'Hari Ini' : `H-${7 - i}`,
+        ...(isLast ? liveStatusSummary : emptySeries),
+      }
+    })
+  })()
+
+  const today = new Date().toLocaleDateString('id-ID', {
+>>>>>>> 1deee92d17413a554070f903f4bbb02d21af9c41
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -118,8 +210,20 @@ export default function DashboardPage() {
     return matchSearch && matchClass
   })
 
+<<<<<<< HEAD
   const handleStatusChange = async (userId: number, status: string) => {
     await updateStatus(userId, status)
+=======
+  // Handle local state edit fallback for inline remarks/timestamp updates
+  const handleUpdateDetails = (
+    userId: number,
+    timestamp: string | undefined,
+    remarks: string | undefined
+  ) => {
+    void userId
+    void timestamp
+    void remarks
+>>>>>>> 1deee92d17413a554070f903f4bbb02d21af9c41
   }
 
   return (
