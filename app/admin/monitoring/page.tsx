@@ -23,6 +23,7 @@ const MAJORS = [
   { id: 'DKV', name: 'DKV', fullName: 'Desain Komunikasi Visual' },
   { id: 'PKM', name: 'PKM', fullName: 'Perbankan & Keuangan Mikro' },
   { id: 'TOI', name: 'TOI', fullName: 'Teknik Otomasi Industri' },
+  { id: 'LPB', name: 'LPB', fullName: 'Layanan Perbankan' },
 ]
 
 export default function MonitoringPage() {

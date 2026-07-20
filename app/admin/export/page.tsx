@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExportDataForm } from '@/components/export-data-form'
 import { MonthlyRecapChart, TopAlfaStudentsChart } from '@/components/attendance-chart'
-import { useMonitoringData, useTopAlfaStudents, useMonthlyRecap } from '@/lib/api-hooks'
+import { useMonitoringData, useTopAlfaStudents, useMonthlyRecap, useAvailableClasses } from '@/lib/api-hooks'
 import { containerVariants, itemVariants } from '@/lib/constants'
 import { 
   Users, 
@@ -20,6 +20,13 @@ import {
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 // Mock 12 months data as baseline fallback
 const baselineMonthlyRecapData = [
@@ -39,11 +46,14 @@ const baselineMonthlyRecapData = [
 
 export default function LaporanPage() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
+  const [classFilter, setClassFilter] = useState('all')
+
+  const { classes } = useAvailableClasses()
   
   // Fetch real data from the API
-  const { data: monitoringData, loading: monitoringLoading } = useMonitoringData({ class_group: 'all', status: 'all' })
-  const { data: topAlfaData, loading: topAlfaLoading } = useTopAlfaStudents()
-  const { data: monthlyRecapApiData, loading: monthlyRecapLoading } = useMonthlyRecap()
+  const { data: monitoringData, loading: monitoringLoading } = useMonitoringData({ class_group: classFilter, status: 'all' })
+  const { data: topAlfaData, loading: topAlfaLoading } = useTopAlfaStudents(classFilter)
+  const { data: monthlyRecapApiData, loading: monthlyRecapLoading } = useMonthlyRecap(classFilter)
 
   const loading = monitoringLoading || topAlfaLoading || monthlyRecapLoading
 
@@ -61,9 +71,45 @@ export default function LaporanPage() {
     { name: 'Rina Astuti', alfaCount: 2, nisn: '12200920', class_group: 'XI-TE-2' },
   ]
 
+  // Filter fallback data client-side if API fails and filter is active
+  const filteredBaselineAlfaList = React.useMemo(() => {
+    if (classFilter === 'all') {
+      return baselineAlfaList
+    }
+    return baselineAlfaList.filter(s => 
+      s.class_group.replace(/-/g, ' ').toLowerCase() === classFilter.replace(/-/g, ' ').toLowerCase()
+    )
+  }, [classFilter])
+
   // Use real data from API first; fallback to baseline if database has no records yet
-  const topAlfaList = topAlfaData && topAlfaData.length > 0 ? topAlfaData : baselineAlfaList
-  const monthlyRecapData = monthlyRecapApiData && monthlyRecapApiData.length > 0 ? monthlyRecapApiData : baselineMonthlyRecapData
+  const topAlfaList = topAlfaData && topAlfaData.length > 0 ? topAlfaData : filteredBaselineAlfaList
+  
+  const monthlyRecapData = React.useMemo(() => {
+    if (monthlyRecapApiData && monthlyRecapApiData.length > 0) {
+      return monthlyRecapApiData
+    }
+    if (classFilter === 'all') {
+      return baselineMonthlyRecapData
+    }
+    // Scale down baseline data to simulate a single class's recap
+    return baselineMonthlyRecapData.map(item => {
+      // Simulate slight variation based on class name hash
+      const hash = classFilter.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      const factor = 12 + (hash % 6) // divider between 12 and 17
+      const hadir = Math.max(15, Math.round(item.Hadir / factor))
+      const sakit = Math.max(0, Math.round(item.Sakit / factor))
+      const alfa = Math.max(0, Math.round(item.Alfa / factor))
+      const total = hadir + sakit + alfa
+      const rate = total > 0 ? Math.round((hadir / total) * 100) : 0
+      return {
+        month: item.month,
+        Hadir: hadir,
+        Sakit: sakit,
+        Alfa: alfa,
+        rate
+      }
+    })
+  }, [monthlyRecapApiData, classFilter])
 
   const handleStudentClick = (student: any) => {
     setSelectedStudent(student)
@@ -159,14 +205,32 @@ export default function LaporanPage() {
       className="space-y-6 pb-10"
     >
       {/* Page Header */}
-      <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1 font-[family-name:var(--font-playfair)]">
-          Laporan & Rekapitulasi Kehadiran
-        </h1>
-        <p className="text-xs text-slate-500 font-light leading-none">
-          Analisis statistik absensi jangka panjang dan ekspor data ke Excel / CSV.
-        </p>
-      </motion.div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <motion.div variants={itemVariants}>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1 font-[family-name:var(--font-playfair)]">
+            Laporan & Rekapitulasi Kehadiran
+          </h1>
+          <p className="text-xs text-slate-500 font-light">
+            Analisis statistik absensi jangka panjang dan ekspor data ke Excel / CSV.
+          </p>
+        </motion.div>
+        
+        <motion.div variants={itemVariants} className="w-full sm:w-48">
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger className="h-10 border-slate-200 bg-white w-full">
+              <SelectValue placeholder="Pilih Kelas" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">Semua Kelas</SelectItem>
+              {classes.map((cls) => (
+                <SelectItem key={cls.id} value={cls.id}>
+                  {cls.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </motion.div>
+      </div>
 
       {loading ? (
         <div className="bg-white border border-slate-200 rounded-xl p-16 flex items-center justify-center h-80 shadow-sm">

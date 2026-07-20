@@ -136,9 +136,19 @@ export const monitoringAPI = {
       body: JSON.stringify(payload),
     }),
 
-  getTopAlfa: () => apiCall<TopAlfaStudent[]>('/attendance/top-alfa'),
+  getTopAlfa: (classGroup?: string) => {
+    const searchParams = new URLSearchParams()
+    if (classGroup && classGroup !== 'all') searchParams.append('class_group', classGroup)
+    const query = searchParams.toString()
+    return apiCall<TopAlfaStudent[]>(`/attendance/top-alfa${query ? `?${query}` : ''}`)
+  },
   
-  getMonthlyRecap: () => apiCall<MonthlyRecapData[]>('/attendance/monthly-recap'),
+  getMonthlyRecap: (classGroup?: string) => {
+    const searchParams = new URLSearchParams()
+    if (classGroup && classGroup !== 'all') searchParams.append('class_group', classGroup)
+    const query = searchParams.toString()
+    return apiCall<MonthlyRecapData[]>(`/attendance/monthly-recap${query ? `?${query}` : ''}`)
+  },
 }
 
 export interface UserDetails {

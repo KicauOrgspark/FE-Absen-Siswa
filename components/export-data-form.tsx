@@ -57,6 +57,7 @@ const JURUSAN_LIST = [
   { id: 'DKV', name: 'DKV - Desain Komunikasi Visual' },
   { id: 'PKM', name: 'PKM - Perbankan & Keuangan Mikro' },
   { id: 'TOI', name: 'TOI - Teknik Otomasi Industri' },
+  { id: 'LPB', name: 'LPB - Layanan Perbankan' },
 ]
 
 export function ExportDataForm() {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { tokenAPI, dashboardAPI, monitoringAPI } from './api-client'
+import { AVAILABLE_CLASSES } from './constants'
 import {
   Token,
   AttendanceStats,
@@ -236,23 +237,39 @@ export function useAvailableClasses() {
         setLoading(true)
         const result = await monitoringAPI.getClasses()
 
-        if ('data' in result && Array.isArray(result.data) && result.data.length > 0) {
-          // Backend mengembalikan array string: ["X-RPL-1", "XI-RPL-1", ...]
-          // Kita konversi menjadi format { id, name } untuk dropdown
+        let apiClasses: { id: string; name: string }[] = []
+        if (result && 'data' in result && Array.isArray(result.data) && result.data.length > 0) {
           if (typeof result.data[0] === 'string') {
-            setClasses(
-              (result.data as string[]).map((cls) => ({
-                id: cls,
-                name: cls, // Gunakan value yang sama untuk label dropdown
-              }))
-            )
+            apiClasses = (result.data as string[]).map((cls) => ({
+              id: cls,
+              name: cls,
+            }))
           } else {
-            // Jika backend sudah mengembalikan format { id, name }
-            setClasses(result.data as unknown as { id: string; name: string }[])
+            apiClasses = result.data as unknown as { id: string; name: string }[]
           }
         }
+
+        // Format fallback static classes to hyphen format
+        const fallbackClasses = AVAILABLE_CLASSES.map(cls => {
+          const formatted = cls.replace(/ /g, '-')
+          return { id: formatted, name: formatted }
+        })
+
+        // Merge and deduplicate by id
+        const mergedClasses = [...apiClasses]
+        fallbackClasses.forEach(fallback => {
+          if (!mergedClasses.some(c => c.id === fallback.id)) {
+            mergedClasses.push(fallback)
+          }
+        })
+
+        setClasses(mergedClasses)
       } catch {
-        // Endpoint gagal → biarkan classes tetap kosong, UI masih bisa dipakai
+        // Fallback to static class list on failure
+        setClasses(AVAILABLE_CLASSES.map(cls => {
+          const formatted = cls.replace(/ /g, '-')
+          return { id: formatted, name: formatted }
+        }))
         setError(null)
       } finally {
         setLoading(false)
@@ -272,6 +289,7 @@ export function useAvailableDepartments() {
     { id: 'DKV', name: 'DKV' },
     { id: 'PKM', name: 'PKM' },
     { id: 'TOI', name: 'TOI' },
+    { id: 'LPB', name: 'LPB' },
   ])
 
   return { departments, loading: false, error: null }
@@ -412,7 +430,7 @@ export function useMonitoringData(filters: { class_group?: string; status?: stri
   return { data, loading, error, refetch: fetchData, updateStatus, updateMultipleStatuses }
 }
 
-export function useTopAlfaStudents() {
+export function useTopAlfaStudents(classGroup?: string) {
   const [data, setData] = useState<TopAlfaStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -421,7 +439,7 @@ export function useTopAlfaStudents() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const result = await monitoringAPI.getTopAlfa()
+        const result = await monitoringAPI.getTopAlfa(classGroup)
         if (result && 'data' in result && Array.isArray(result.data)) {
           setData(result.data)
         } else {
@@ -434,12 +452,12 @@ export function useTopAlfaStudents() {
       }
     }
     fetchData()
-  }, [])
+  }, [classGroup])
 
   return { data, loading, error }
 }
 
-export function useMonthlyRecap() {
+export function useMonthlyRecap(classGroup?: string) {
   const [data, setData] = useState<MonthlyRecapData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -448,7 +466,7 @@ export function useMonthlyRecap() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const result = await monitoringAPI.getMonthlyRecap()
+        const result = await monitoringAPI.getMonthlyRecap(classGroup)
         if (result && 'data' in result && Array.isArray(result.data)) {
           setData(result.data)
         } else {
@@ -461,7 +479,7 @@ export function useMonthlyRecap() {
       }
     }
     fetchData()
-  }, [])
+  }, [classGroup])
 
   return { data, loading, error }
 }
