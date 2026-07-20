@@ -18,6 +18,7 @@ import {
   TrendingUp,
   ChevronRight,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useLoginPage } from "./hooks/useLoginPage";
 import { LoginFormBody } from "../components/LoginFormBody";
@@ -117,7 +118,7 @@ function StudentDashboard() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
-  const { onQRSubmit, tokenExpiredError, attendanceStatus, successTime, currentScreen, scanError } = useLoginPage();
+  const { onQRSubmit, tokenExpiredError, attendanceStatus, successTime, currentScreen, scanError, isSubmittingToken } = useLoginPage();
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -148,6 +149,25 @@ function StudentDashboard() {
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  // ── Toast feedback saat scan berhasil atau gagal ──
+  useEffect(() => {
+    if (currentScreen === "success") {
+      setShowScanner(false);
+      toast.success("Absensi berhasil!", {
+        description: `Status: ${attendanceStatus?.toUpperCase() || "HADIR"}`,
+      });
+      // Refresh logs agar data terbaru langsung tampil
+      fetchLogs();
+    }
+  }, [currentScreen, attendanceStatus, fetchLogs]);
+
+  useEffect(() => {
+    if (scanError) {
+      setShowScanner(false);
+      toast.error("Gagal absen", { description: scanError });
+    }
+  }, [scanError]);
 
   // Compute stats from logs
   const totalHadir = logs.filter((l) => l.status === "hadir").length;
@@ -198,7 +218,7 @@ function StudentDashboard() {
           >
             <p className="text-sm text-[#8e8b82] font-medium">{getGreeting()}</p>
             <h1 className="text-2xl font-bold text-[#111111] tracking-tight mt-0.5 font-[family-name:var(--font-playfair)]">
-              {user?.fullname || "Siswa"}
+              {user?.full_name || "Siswa"}
             </h1>
           </motion.div>
 
@@ -214,7 +234,7 @@ function StudentDashboard() {
                 <UserIcon className="h-5 w-5 text-[#c63535]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#111111] truncate">{user?.fullname}</p>
+                <p className="text-sm font-semibold text-[#111111] truncate">{user?.full_name}</p>
                 <p className="text-xs text-[#8e8b82]">NISN: {user?.nisn}</p>
               </div>
               <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${st.bg}`}>
@@ -365,7 +385,6 @@ function StudentDashboard() {
         open={showScanner}
         onClose={() => setShowScanner(false)}
         onScanSuccess={(token) => {
-          setShowScanner(false);
           onQRSubmit(token);
         }}
         expiredError={tokenExpiredError}

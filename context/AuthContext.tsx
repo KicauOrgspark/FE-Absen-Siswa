@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         userData = {
            id: 0,
            nisn: credentials.nisn,
-           fullname: 'Admin/Guru',
+           full_name: 'Admin/Guru',
            username: 'admin',
            role: loginData.role,
            class_group: '',

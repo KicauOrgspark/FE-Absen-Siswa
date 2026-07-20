@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useId } from "react"
+import { useEffect, useRef, useId, useState } from "react"
 import { Html5Qrcode } from "html5-qrcode"
 import { motion, AnimatePresence } from "framer-motion"
-import { AlertCircle, ScanLine } from "lucide-react"
+import { AlertCircle, ScanLine, Camera } from "lucide-react"
 
 import {
     Dialog,
@@ -27,6 +27,7 @@ export function QRScannerModal({
 
     const scannerRef = useRef<Html5Qrcode | null>(null)
     const startedRef = useRef(false)
+    const [cameraError, setCameraError] = useState<string | null>(null)
     // useId biar id-nya unik & stabil, aman kalau komponen di-render lebih dari sekali
     const uid = useId()
     const readerId = `qr-reader-${uid.replace(/:/g, "")}`
@@ -35,7 +36,7 @@ export function QRScannerModal({
 
         if (!open || startedRef.current) return
 
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
 
             const el = document.getElementById(readerId)
             if (!el) {
@@ -44,26 +45,49 @@ export function QRScannerModal({
             }
 
             const scanner = new Html5Qrcode(readerId)
-
             scannerRef.current = scanner
-            startedRef.current = true
+            setCameraError(null)
 
-            scanner.start(
+            const scanConfig = { fps: 10, qrbox: { width: 250, height: 250 } }
+
+            const onSuccess = async (decodedText: string) => {
+                try {
+                    await scanner.stop()
+                    await scanner.clear()
+                } catch { }
+
+                startedRef.current = false
+                onScanSuccess(decodedText)
+            }
+
+            const onFailure = () => { }
+
+            // Coba kamera belakang dulu, lalu depan, lalu kamera mana saja
+            const attempts: Array<{ facingMode: string } | string> = [
                 { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
+                { facingMode: "user" },
+            ]
 
-                async (decodedText) => {
-                    try {
-                        await scanner.stop()
-                        await scanner.clear()
-                    } catch { }
+            // Tambahkan device ID kamera pertama yang tersedia sebagai fallback terakhir
+            try {
+                const devices = await Html5Qrcode.getCameras()
+                if (devices.length > 0) {
+                    attempts.push(devices[0].id)
+                }
+            } catch { }
 
-                    startedRef.current = false
-                    onScanSuccess(decodedText)
-                },
+            for (const cameraId of attempts) {
+                try {
+                    await scanner.start(cameraId, scanConfig, onSuccess, onFailure)
+                    startedRef.current = true
+                    return // berhasil, keluar dari loop
+                } catch {
+                    // Gagal dengan kamera ini, coba berikutnya
+                }
+            }
 
-                () => { }
-            )
+            // Semua kamera gagal
+            setCameraError("Kamera tidak tersedia atau izin ditolak. Pastikan browser mendapat izin akses kamera.")
 
         }, 300)
 
@@ -126,11 +150,18 @@ export function QRScannerModal({
 
                 <div
                     id={readerId}
-                    className="rounded-md overflow-hidden min-h-[300px] border border-[#e2e8f0]"
-                />
+                    className="relative rounded-md overflow-hidden min-h-[300px] flex flex-col items-center justify-center border border-[#e2e8f0] bg-[#f4f5f6]"
+                >
+                    {cameraError && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-[#f4f5f6]">
+                            <Camera className="h-10 w-10 text-slate-400 mb-3" />
+                            <p className="text-sm font-medium text-slate-700">{cameraError}</p>
+                        </div>
+                    )}
+                </div>
 
                 <p className="text-sm text-[#8e8b82]">
-                    Arahkan kamera ke QR guru
+                    {cameraError ? "Gagal mengakses kamera." : "Arahkan kamera ke QR guru"}
                 </p>
 
             </DialogContent>
