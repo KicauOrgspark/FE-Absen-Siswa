@@ -212,6 +212,7 @@ export function useLoginPage() {
 
   const onQRSubmit = useCallback(async (tokenCode: string) => {
     if (tokenBlocked) return
+    if (isSubmittingToken) return
 
     setIsSubmittingToken(true)
     setTokenError("")
@@ -272,7 +273,7 @@ export function useLoginPage() {
       setIsSubmittingToken(false)
     }
 
-  }, [tokenBlocked, getLocation, submitAbsen, showScanError])
+  }, [tokenBlocked, isSubmittingToken, getLocation, submitAbsen, showScanError])
 
 
   /* =========================

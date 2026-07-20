@@ -15,7 +15,7 @@ export interface User {
     message: string;
     id: number;
     nisn: string;
-    fullname: string;
+    full_name: string;
     username: string;
     role: string;
     class_group: string;
