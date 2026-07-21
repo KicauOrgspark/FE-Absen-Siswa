@@ -45,6 +45,7 @@ export default function LaporanPage() {
       classId: filterKelas,
       departmentId: filterJurusan,
       startDate: startDate,
+      endDate: endDate,
     })
   }
 
@@ -161,9 +162,11 @@ export default function LaporanPage() {
                   className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-shadow"
                 >
                   <option value="">Semua Jurusan</option>
-                  <option value="TKJ">Teknik Komputer Jaringan</option>
-                  <option value="AK">Akuntansi</option>
                   <option value="RPL">Rekayasa Perangkat Lunak</option>
+                  <option value="TKJ">Teknik Komputer Jaringan</option>
+                  <option value="DKV">Desain Komunikasi Visual</option>
+                  <option value="LPB">Layanan Perbankan Syariah</option>
+                  <option value="TOI">Teknik Otomasi Industri</option>
                 </select>
               </div>
               
@@ -175,7 +178,9 @@ export default function LaporanPage() {
                   className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-shadow"
                 >
                   <option value="">Semua Kelas</option>
-                  {(classes ?? []).map((c) => (
+                  {(classes ?? [])
+                    .filter(c => filterJurusan ? c.id.includes(`-${filterJurusan}-`) || c.id.endsWith(`-${filterJurusan}`) : true)
+                    .map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>

@@ -163,11 +163,13 @@ export const notificationAPI = {
 }
 
 export const monitoringAPI = {
-  getStudents: (params?: { class_group?: string; status?: string }): Promise<MonitoringApiResponse | ApiError> => {
+  getStudents: (params?: { class_group?: string; status?: string; angkatan?: string; jurusan?: string }): Promise<MonitoringApiResponse | ApiError> => {
     const searchParams = new URLSearchParams()
     if (params?.class_group && params.class_group !== 'all') searchParams.append('class_group', params.class_group)
     if (params?.status && params.status !== 'all') searchParams.append('status', params.status)
-    return apiCall<BackendStudent[]>(`/attendance/students?${searchParams.toString()}`) as Promise<MonitoringApiResponse | ApiError>
+    if (params?.angkatan) searchParams.append('angkatan', params.angkatan)
+    if (params?.jurusan) searchParams.append('jurusan', params.jurusan)
+    return apiCall<MonitoringApiResponse>(`/attendance/students?${searchParams.toString()}`) as Promise<MonitoringApiResponse | ApiError>
   },
 
   getClasses: () => apiCall<string[]>('/classes'),

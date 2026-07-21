@@ -64,7 +64,8 @@ export function ExportDataForm() {
     defaultValues: {
       classId: '',
       departmentId: '',
-      attendanceDate: '',
+      startDate: '',
+      endDate: '',
     },
   })
 
@@ -75,7 +76,7 @@ export function ExportDataForm() {
   const isLoading = classesLoading || exportLoading
 
   async function onSubmit(values: any) {
-    if (!values.classId && !values.departmentId && !values.attendanceDate) {
+    if (!values.classId && !values.departmentId && !values.startDate && !values.endDate) {
       toast.warning('Filter Diperlukan', 'Pilih minimal satu filter sebelum ekspor data.')
       return
     }
@@ -161,7 +162,10 @@ export function ExportDataForm() {
                                 <Check className={`mr-2 h-3.5 w-3.5 ${!field.value ? 'opacity-100 text-[#c63535]' : 'opacity-0'}`} />
                                 Semua Kelas
                               </CommandItem>
-                              {classes.map((cls) => (
+                              {classes.filter(cls => {
+                                const selectedDept = form.watch('departmentId');
+                                return selectedDept ? cls.id.includes(`-${selectedDept}-`) || cls.id.endsWith(`-${selectedDept}`) : true;
+                              }).map((cls) => (
                                 <CommandItem
                                   key={cls.id}
                                   value={cls.name}
@@ -212,17 +216,34 @@ export function ExportDataForm() {
               </motion.div>
             </div>
 
-            {/* Date */}
-            <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
+            {/* Date Range */}
+            <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="attendanceDate"
+                name="startDate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className={labelClass}>
                       <CalendarDays className="h-3.5 w-3.5 text-[#5a626a] shrink-0" />
-                      Tanggal
-                      <span className="ml-auto text-[10px] text-[#5a626a]/60 font-light normal-case tracking-[0.5px]">Opsional</span>
+                      Mulai
+                    </FormLabel>
+                    <FormControl>
+                      <input
+                        type="date"
+                        {...field}
+                        className={inputBaseClass}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className={labelClass}>
+                      Sampai
                     </FormLabel>
                     <FormControl>
                       <input

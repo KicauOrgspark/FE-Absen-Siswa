@@ -263,6 +263,7 @@ export function useExportData() {
     classId?: string
     departmentId?: string
     startDate?: string
+    endDate?: string
   }) => {
     setLoading(true)
     setError(null)
@@ -273,7 +274,8 @@ export function useExportData() {
       if (filters.exportType) searchParams.append('type', filters.exportType)
       if (filters.classId) searchParams.append('kelas', filters.classId)
       if (filters.departmentId) searchParams.append('jurusan', filters.departmentId)
-      if (filters.startDate) searchParams.append('tanggal', filters.startDate)
+      if (filters.startDate) searchParams.append('start_date', filters.startDate)
+      if (filters.endDate) searchParams.append('end_date', filters.endDate)
 
       const url = `/api/v1/export/attendance?${searchParams.toString()}`
 
@@ -321,7 +323,7 @@ export function useExportData() {
    MONITORING
 ========================================================= */
 
-export function useMonitoringData(filters: { class_group?: string; status?: string }) {
+export function useMonitoringData(filters: { class_group?: string; status?: string; angkatan?: string; jurusan?: string }) {
   const [data, setData] = useState<MonitoringResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -360,7 +362,7 @@ export function useMonitoringData(filters: { class_group?: string; status?: stri
 
   useEffect(() => {
     fetchData()
-  }, [filters.class_group, filters.status])
+  }, [filters.class_group, filters.status, filters.angkatan, filters.jurusan])
 
   const updateStatus = async (userId: number, status: string) => {
     const result = await monitoringAPI.updateStatus({ user_id: userId, status })

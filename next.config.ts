@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://api.smart-presence.smkpluspnb.sch.id/api/:path*'
+        destination: 'http://localhost:3000/api/:path*'
       },
     ];  
   },

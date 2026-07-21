@@ -86,23 +86,12 @@ export default function MonitoringPage() {
   const { data: monitoring, loading, updateStatus, refetch } = useMonitoringData({
     class_group: classGroup || undefined,
     status: statusFilter || undefined,
+    angkatan: angkatan !== 'Semua Angkatan' ? angkatan : undefined,
+    jurusan: jurusan !== 'Semua Jurusan' ? jurusan : undefined,
   })
   const { classes } = useAvailableClasses()
 
-  const studentsData = monitoring?.data ?? []
-  const students = studentsData.filter(s => {
-    let matchClass = true
-    if (classGroup) {
-      matchClass = s.class_group === classGroup
-    }
-    
-    let matchStatus = true
-    if (statusFilter) {
-      matchStatus = statusVariant(s.status || '') === statusFilter
-    }
-    
-    return matchClass && matchStatus
-  })
+  const students = monitoring?.data ?? []
   const summary = monitoring?.summary
 
   const handleSave = async (userId: number) => {
