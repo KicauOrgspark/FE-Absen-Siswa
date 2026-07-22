@@ -487,7 +487,7 @@ export function useAdminNotifications(pollingIntervalMs = 60_000) {
         setNotifications(items)
         setError(null)
       } else {
-        setError(result.message || 'Gagal memuat notifikasi')
+        setError((result as any)?.message || 'Gagal memuat notifikasi')
       }
     } catch {
       setError('Gagal memuat notifikasi')

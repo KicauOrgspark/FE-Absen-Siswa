@@ -149,15 +149,13 @@ export default function StudentsMasterPage() {
       return
     }
 
-    const payload: Record<string, unknown> = {
+    const payload = {
       nisn,
       full_name: fullName,
       username,
       class_group: classGroup,
       parent_phone: parentPhone,
-    }
-    if (password) {
-      payload.password = password
+      ...(password ? { password } : {}),
     }
 
     toast.loading('Menyimpan data siswa...')

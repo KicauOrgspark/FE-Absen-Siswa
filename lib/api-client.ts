@@ -222,30 +222,32 @@ export const usersAPI = {
     username: string
     class_group: string
     parent_phone: string
+    password?: string
   }) =>
     apiCall<ApiResponse<UserDetails>>('/users', {
       method: 'POST',
       body: JSON.stringify({
-        ...payload,
         role: 'siswa',
-        password: 'password123', // default password
+        ...payload,
+        password: payload.password || 'password123',
       }),
     }),
   update: (
     id: number,
-    payload: {
+    payload: Partial<{
       nisn: string
       full_name: string
       username: string
       class_group: string
       parent_phone: string
-    }
+      password?: string
+    }>
   ) =>
     apiCall<ApiResponse<UserDetails>>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify({
-        ...payload,
         role: 'siswa',
+        ...payload,
       }),
     }),
   delete: (id: number) =>
