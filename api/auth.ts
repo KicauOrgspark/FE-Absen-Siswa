@@ -13,8 +13,18 @@ export const authAPI = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || error.message || "Login failed");
+      let errorMessage = "Login failed";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || "Login failed";
+      } catch {
+        if (response.status === 404) {
+          errorMessage = "Backend API tidak ditemukan (404). Pastikan Service Backend Go sudah berjalan dan lokasi /api/ di Nginx sudah terkonfigurasi.";
+        } else {
+          errorMessage = `Terjadi kesalahan pada koneksi server (HTTP ${response.status})`;
+        }
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -57,8 +67,12 @@ export const authAPI = {
       return null;
     }
 
-    const responseData = await response.json();
-    return responseData.data as User;
+    try {
+      const responseData = await response.json();
+      return responseData.data as User;
+    } catch {
+      return null;
+    }
   },
 
   register: async (data: Record<string, unknown>): Promise<unknown> => {
