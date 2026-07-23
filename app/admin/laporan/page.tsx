@@ -31,7 +31,7 @@ import {
 } from 'recharts'
 
 export default function LaporanPage() {
-  const [selectedYear, setSelectedYear] = useState('2023/2024')
+  const [selectedYear, setSelectedYear] = useState('2026/2027')
   const { data: monthlyData, loading: monthlyLoading } = useMonthlyRecap(selectedYear)
   const { data: topAlfaData, loading: topAlfaLoading } = useTopAlfaStudents()
   const { exportToExcel, loading: exportLoading } = useExportData()
@@ -97,8 +97,16 @@ export default function LaporanPage() {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary font-sans cursor-pointer"
             >
-              <option value="2023/2024">2023/2024</option>
+              <option value="">Semua Tahun</option>
               <option value="2022/2023">2022/2023</option>
+              <option value="2023/2024">2023/2024</option>
+              <option value="2024/2025">2024/2025</option>
+              <option value="2025/2026">2025/2026</option>
+              <option value="2026/2027">2026/2027</option>
+              <option value="2027/2028">2027/2028</option>
+              <option value="2028/2029">2028/2029</option>
+              <option value="2029/2030">2029/2030</option>
+              <option value="2030/2031">2030/2031</option>
             </select>
           </div>
           
@@ -285,7 +293,7 @@ export default function LaporanPage() {
                     <div className="bg-[var(--status-telat)]/20 p-4 rounded-xl border border-[var(--status-telat-text)]/20">
                       <span className="block text-xs font-semibold uppercase tracking-[0.05em] text-[var(--status-telat-text)] mb-1 font-sans">Total Telat</span>
                       <div className="font-sans text-3xl font-bold text-[var(--status-telat-text)]">
-                        5 <span className="text-sm font-normal">hari</span>
+                        {topStudent.telatCount ?? 0} <span className="text-sm font-normal">hari</span>
                       </div>
                     </div>
                   </div>

@@ -53,6 +53,9 @@ export default function StudentsMasterPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [classFilter, setClassFilter] = useState('all')
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
   // Form State
   const [isOpen, setIsOpen] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
@@ -189,6 +192,12 @@ export default function StudentsMasterPage() {
     return matchSearch && matchClass
   })
 
+  const totalStudentsCount = filteredStudents.length
+  const totalPages = Math.max(1, Math.ceil(totalStudentsCount / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedStudents = filteredStudents.slice(startIndex, endIndex)
+
   return (
     <motion.div
       variants={containerVariants}
@@ -224,14 +233,14 @@ export default function StudentsMasterPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <Input
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
             placeholder="Cari berdasarkan NISN atau nama siswa..."
             className="pl-10 h-10 border-slate-200 focus:border-indigo-500 w-full"
           />
         </div>
 
         <div className="w-full md:w-48">
-          <Select value={classFilter} onValueChange={setClassFilter}>
+          <Select value={classFilter} onValueChange={(val) => { setClassFilter(val); setCurrentPage(1) }}>
             <SelectTrigger className="h-10 border-slate-200">
               <SelectValue placeholder="Pilih Kelas" />
             </SelectTrigger>
@@ -274,7 +283,7 @@ export default function StudentsMasterPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.map((student, idx) => {
+                  {paginatedStudents.map((student, idx) => {
                     const studentGender = getGender(student.nisn, student.full_name)
                     const isFemale = studentGender === 'P'
                     return (
@@ -336,6 +345,36 @@ export default function StudentsMasterPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="p-4 border-t border-slate-200 bg-white flex justify-between items-center text-sm text-slate-500 font-sans">
+              <span>
+                {totalStudentsCount === 0
+                  ? 'Menampilkan 0 dari 0 siswa'
+                  : `Menampilkan ${startIndex + 1}-${Math.min(endIndex, totalStudentsCount)} dari ${totalStudentsCount} siswa`}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  Sebelumnya
+                </Button>
+                <span className="text-xs font-semibold px-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Selanjutnya
+                </Button>
+              </div>
             </div>
           </div>
         )}

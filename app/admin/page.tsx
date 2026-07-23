@@ -111,6 +111,9 @@ export default function DashboardPage() {
   const [angkatanFilter, setAngkatanFilter] = useState('Semua Angkatan')
   const [classFilter, setClassFilter] = useState('')
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
   const totalHadir = (stats?.totalHadir ?? 0) + (stats?.totalTelat ?? 0)
   const totalSakit = stats?.totalSakit ?? 0
   const totalAlpa = stats?.totalAlfa ?? 0
@@ -132,6 +135,12 @@ export default function DashboardPage() {
     const matchClass = !classFilter || classFilter === 'all' || kelas === classFilter
     return matchSearch && matchClass && matchAngkatan
   })
+
+  const totalItems = filteredData.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedData = filteredData.slice(startIndex, endIndex)
 
   const handleStatusChange = async (userId: number, status: string) => {
     await updateStatus(userId, status)
@@ -226,12 +235,12 @@ export default function DashboardPage() {
                 placeholder="Cari NISN atau Nama..."
                 className="pl-9"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }}
               />
             </div>
             <Select
               value={angkatanFilter}
-              onValueChange={(val) => { setAngkatanFilter(val); setClassFilter('all') }}
+              onValueChange={(val) => { setAngkatanFilter(val); setClassFilter('all'); setCurrentPage(1) }}
             >
               <SelectTrigger className="w-full sm:w-36 h-10 border-border bg-background">
                 <SelectValue placeholder="Angkatan" />
@@ -246,7 +255,7 @@ export default function DashboardPage() {
 
             <Select
               value={classFilter || 'all'}
-              onValueChange={setClassFilter}
+              onValueChange={(val) => { setClassFilter(val); setCurrentPage(1) }}
             >
               <SelectTrigger className="w-full sm:w-36 h-10 border-border bg-background">
                 <SelectValue placeholder="Pilih Kelas" />
@@ -296,7 +305,7 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ) : (
-                filteredData.slice(0, 10).map((student) => {
+                paginatedData.map((student) => {
                   const id = student.id
                   const name = student.name ?? '-'
                   const nisn = student.nisn ?? '-'
@@ -362,13 +371,27 @@ export default function DashboardPage() {
         {/* Pagination Footer */}
         <div className="p-4 border-t border-border bg-background flex justify-between items-center text-sm text-muted-foreground font-sans">
           <span>
-            Menampilkan 1-{Math.min(10, filteredData.length)} dari {filteredData.length} siswa
+            {totalItems === 0
+              ? 'Menampilkan 0 dari 0 siswa'
+              : `Menampilkan ${startIndex + 1}-${Math.min(endIndex, totalItems)} dari ${totalItems} siswa`}
           </span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
               Sebelumnya
             </Button>
-            <Button size="sm">
+            <span className="text-xs font-semibold px-2">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
               Selanjutnya
             </Button>
           </div>
