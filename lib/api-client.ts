@@ -13,7 +13,7 @@ import {
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  '/api/v1'
+  'https://api.smart-presence.smkpluspnb.sch.id/api/v1'
 
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>
