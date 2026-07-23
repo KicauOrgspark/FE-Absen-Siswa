@@ -21,6 +21,15 @@ export default function DataMasterPage() {
   const [classFilter, setClassFilter] = useState('')
   const { data, loading, refetch } = useUsers({ search, class_group: classFilter })
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  const totalUsersCount = data.users.length
+  const totalPages = Math.max(1, Math.ceil(totalUsersCount / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedUsers = data.users.slice(startIndex, endIndex)
+
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingStudent, setEditingStudent] = useState<UserDetails | null>(null)
 
@@ -134,12 +143,12 @@ export default function DataMasterPage() {
             placeholder="Cari NISN atau Nama..."
             className="pl-10 font-sans"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }}
           />
         </div>
         <Select
           value={classFilter || 'all'}
-          onValueChange={(val) => setClassFilter(val === 'all' ? '' : val)}
+          onValueChange={(val) => { setClassFilter(val === 'all' ? '' : val); setCurrentPage(1) }}
         >
           <SelectTrigger className="w-full sm:w-48 h-10 border-border bg-background">
             <SelectValue placeholder="Semua Kelas" />
@@ -183,7 +192,7 @@ export default function DataMasterPage() {
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">Tidak ada data ditemukan.</td>
                 </tr>
               ) : (
-                data.users.map((student) => (
+                paginatedUsers.map((student) => (
                   <tr key={student.id} className="hover:bg-muted/50 transition-colors">
                     <td className="py-4 px-4 font-mono text-muted-foreground">{student.nisn}</td>
                     <td className="py-4 px-4">
@@ -232,13 +241,28 @@ export default function DataMasterPage() {
         {/* Pagination */}
         <div className="bg-accent px-4 py-3 border-t border-border flex items-center justify-between font-sans">
           <span className="text-sm text-muted-foreground">
-            Menampilkan {data.users.length} dari {data.total} siswa
+            {totalUsersCount === 0
+              ? 'Menampilkan 0 dari 0 siswa'
+              : `Menampilkan ${startIndex + 1}-${Math.min(endIndex, totalUsersCount)} dari ${totalUsersCount} siswa`}
           </span>
-          <div className="flex gap-1">
-            <Button variant="outline" size="sm" disabled>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
               Sebelumnya
             </Button>
-            <Button variant="outline" size="sm">
+            <span className="text-xs font-semibold px-2 text-muted-foreground">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
               Selanjutnya
             </Button>
           </div>

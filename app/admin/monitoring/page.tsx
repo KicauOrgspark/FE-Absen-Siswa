@@ -101,6 +101,15 @@ export default function MonitoringPage() {
   const students = monitoring?.data ?? []
   const summary = monitoring?.summary
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  const totalStudentsCount = students.length
+  const totalPages = Math.max(1, Math.ceil(totalStudentsCount / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedStudents = students.slice(startIndex, endIndex)
+
   const handleSave = async (userId: number) => {
     if (editStatus) {
       await updateStatus(userId, editStatus)
@@ -167,7 +176,7 @@ export default function MonitoringPage() {
           <label className="block text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-1 font-sans">Angkatan</label>
           <Select 
             value={angkatan} 
-            onValueChange={(val) => { setAngkatan(val); setClassGroup('') }}
+            onValueChange={(val) => { setAngkatan(val); setClassGroup(''); setCurrentPage(1) }}
           >
             <SelectTrigger className="w-full h-10 border-border bg-background">
               <SelectValue placeholder="Angkatan" />
@@ -184,7 +193,7 @@ export default function MonitoringPage() {
           <label className="block text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-1 font-sans">Jurusan</label>
           <Select 
             value={jurusan} 
-            onValueChange={(val) => { setJurusan(val); setClassGroup('') }}
+            onValueChange={(val) => { setJurusan(val); setClassGroup(''); setCurrentPage(1) }}
           >
             <SelectTrigger className="w-full h-10 border-border bg-background">
               <SelectValue placeholder="Jurusan" />
@@ -203,7 +212,7 @@ export default function MonitoringPage() {
           <label className="block text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-1 font-sans">Kelas</label>
           <Select
             value={classGroup || 'all'}
-            onValueChange={(val) => setClassGroup(val === 'all' ? '' : val)}
+            onValueChange={(val) => { setClassGroup(val === 'all' ? '' : val); setCurrentPage(1) }}
           >
             <SelectTrigger className="w-full h-10 border-border bg-background">
               <SelectValue placeholder="Semua Kelas" />
@@ -230,7 +239,7 @@ export default function MonitoringPage() {
           <label className="block text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground mb-1 font-sans">Status</label>
           <Select
             value={statusFilter || 'all'}
-            onValueChange={(val) => setStatusFilter(val === 'all' ? '' : val)}
+            onValueChange={(val) => { setStatusFilter(val === 'all' ? '' : val); setCurrentPage(1) }}
           >
             <SelectTrigger className="w-full h-10 border-border bg-background">
               <SelectValue placeholder="Semua Status" />
@@ -280,7 +289,7 @@ export default function MonitoringPage() {
               ) : students.length === 0 ? (
                 <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Tidak ada data ditemukan.</td></tr>
               ) : (
-                students.map((student) => {
+                paginatedStudents.map((student) => {
                   const isEditing = editingId === student.id
                   const waktu = student.timestamp
                     ? new Date(student.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
@@ -348,14 +357,31 @@ export default function MonitoringPage() {
         {/* Pagination */}
         <div className="bg-accent px-4 py-3 border-t border-border flex items-center justify-between font-sans">
           <span className="text-sm text-muted-foreground">
-            Menampilkan {students.length} siswa {summary ? `(Hadir: ${summary.hadir}, Telat: ${summary.telat}, Alfa: ${summary.alfa})` : ''}
+            {totalStudentsCount === 0
+              ? 'Menampilkan 0 dari 0 siswa'
+              : `Menampilkan ${startIndex + 1}-${Math.min(endIndex, totalStudentsCount)} dari ${totalStudentsCount} siswa`}
+            {summary ? ` (Hadir: ${summary.hadir}, Telat: ${summary.telat}, Alfa: ${summary.alfa})` : ''}
           </span>
-          <div className="flex gap-1">
-            <Button variant="outline" size="sm" disabled>Sebelumnnya</Button>
-            <Button size="sm">1</Button>
-            <Button variant="outline" size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">Selanjutnya</Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Sebelumnya
+            </Button>
+            <span className="text-xs font-semibold px-2 text-muted-foreground">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Selanjutnya
+            </Button>
           </div>
         </div>
       </motion.div>

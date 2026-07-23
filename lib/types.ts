@@ -125,6 +125,7 @@ export interface TopAlfaStudent {
   name: string
   nisn: string
   alfaCount: number
+  telatCount?: number
   class_group: string
 }
 
